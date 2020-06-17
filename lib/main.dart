@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:music/components/audioControl.dart';
+import 'package:music/plugin/audio.dart';
 import 'package:music/theme/ThemeConfigurator.dart';
 import 'common/textColor.dart';
 import 'components/textField.dart';
@@ -42,16 +44,17 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Dio dio = new Dio();
 
-  int pageNo = 2;
+  int pageNo = 1;
 
   String _text = '';
   SongsData songsData = new SongsData();
   List<Widget> songsList = [];
+  SongList currentPlay;
+  bool _play = false;
   void getSongList() async {
     try {
       Response response = await Dio().get("http://api.migu.jsososo.com/search",
           queryParameters: {'keyword': _text, 'pageNo': pageNo});
-      print(response.data);
       Map songsMap = json.decode(response.toString());
       Songs songs = new Songs.fromJson(songsMap);
       if (songs.result == 100) {
@@ -65,16 +68,43 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _payMusic(SongList song) {
+    setState(() {
+      currentPlay = song;
+    });
+    AudioInstance().initAudio(song.url);
+  }
+
   getSongsDetail() {
     if (songsData != null && songsData.list != null) {
-      var songs = songsData.list.map((e) => ListTile(
-            leading: e.album.picUrl != null ? new Image.network(e.album.picUrl): new Text(e.name),
-            title: new Text(e.name),
-          ));
+      var usefulList = songsData.list.where((item) => item.url != null);
+      var songs = usefulList
+          .map((e) => Container(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: ListTile(
+                  leading: e.album.picUrl != null
+                      ? new Image.network(e.album.picUrl)
+                      : new Image.asset('assets/notFound.jpeg'),
+                  title: new Text(e.name),
+                  subtitle: new Text(e.artists[0].name),
+                  onTap: () {
+                    _payMusic(e);
+                  },
+                ),
+              ))
+          .toList();
+      print(songs);
       setState(() {
-        songsList = songs.toList();
+        songsList = songs;
       });
     }
+  }
+
+  playOrPause() async {
+    setState(() {
+      _play = !_play;
+    });
+    await AudioInstance().assetsAudioPlayer.playOrPause();
   }
 
   Widget build(BuildContext context) {
@@ -98,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
         backgroundColor: NeumorphicTheme.baseColor(context),
-        body: ListView(
+        body: Column(
           children: <Widget>[
             TextSearchField(
               hint: "请输入歌曲名或者作者",
@@ -109,7 +139,16 @@ class _MyHomePageState extends State<MyHomePage> {
                 getSongList();
               },
             ),
-            Column(children: songsList)
+            Expanded(
+              child: ListView(
+                children:
+                    ListTile.divideTiles(tiles: songsList, context: context)
+                        .toList(),
+              ),
+            ),
+            currentPlay != null
+                ? MyPageWithAudio(currentPlay: currentPlay)
+                : Container()
           ],
         ));
   }

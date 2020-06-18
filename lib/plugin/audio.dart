@@ -1,9 +1,10 @@
 import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:music/json_convert/songs.dart';
 
 class AudioInstance {
   // 单例公开访问点
   factory AudioInstance() => _getInstance();
-
+  bool get isPlay => assetsAudioPlayer.isPlaying.value;
   // 静态私有成员，没有初始化
   static AudioInstance _instance;
   static AudioInstance get instance => _getInstance();
@@ -21,19 +22,66 @@ class AudioInstance {
     return _instance;
   }
 
-  Future<void> initAudio(uri) async {
+  static Audio _audio;
+  Future<void> initAudio(SongList song) async {
+    if (isPlay) {
+      stop();
+    }
     try {
-      await assetsAudioPlayer.open(
-        Audio.network(uri),
+      _audio = Audio.network(
+        song.url,
+        metas: Metas(
+          title: song.name,
+          artist: song.artists[0].name,
+          album: song.album.name,
+          image:
+              MetasImage.network(song.album.picUrl), //can be MetasImage.network
+        ),
       );
+      await assetsAudioPlayer.open(_audio, showNotification: true);
+      updateMetas(song);
     } catch (t) {
       //mp3 unreachable
     }
   }
 
+  Future<void> initAudioList(List<SongList> songsList) async {
+    if (isPlay) {
+      stop();
+    }
+    try {
+      List<Audio> playList = songsList
+          .map((song) => Audio.network(
+                song.url,
+                metas: Metas(
+                  title: song.name,
+                  artist: song.artists[0].name,
+                  album: song.album.name,
+                  image: MetasImage.network(
+                      song.album.picUrl), //can be MetasImage.network
+                ),
+              ))
+          .toList();
+      assetsAudioPlayer.open(Playlist(audios: playList),
+          loopMode: LoopMode.playlist, showNotification: true);
+    } catch (t) {
+      //mp3 unreachable
+    }
+  }
+
+  updateMetas(SongList song) {
+    if (_audio != null) {
+      _audio.updateMetas(
+        title: song.name,
+        artist: song.artists[0].name,
+        album: song.album.name,
+        image: MetasImage.network(song.album.picUrl), //c
+      );
+    }
+  }
+
   Future<void> playOrPause() async {
     await assetsAudioPlayer.playOrPause();
-    print('playOrPause');
   }
 
   Future<void> play() async {
@@ -46,5 +94,13 @@ class AudioInstance {
 
   Future<void> stop() async {
     await assetsAudioPlayer.stop();
+  }
+
+  Future<void> next() async {
+    await assetsAudioPlayer.next();
+  }
+
+  Future<void> prev() async {
+    await assetsAudioPlayer.previous();
   }
 }

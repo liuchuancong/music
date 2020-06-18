@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:music/model/currentSong.dart';
 import 'package:music/plugin/audio.dart';
+import 'package:provider/provider.dart';
 import '../plugin/duration.dart';
 import '../json_convert/songs.dart';
 
@@ -28,30 +31,26 @@ class _AudioPlayerPageState extends State<AudioPlayerPage> {
         ),
         darkTheme: neumorphicDefaultDarkTheme.copyWith(
             defaultTextColor: Colors.white70),
-        child: _Page(
-          currentPlay: widget.currentPlay,
-        ));
+        child: _Page());
   }
 }
 
 class _Page extends StatefulWidget {
-  final SongList currentPlay;
-
-  const _Page({Key key, this.currentPlay}) : super(key: key);
+  const _Page({Key key}) : super(key: key);
   @override
   __PageState createState() => __PageState();
 }
 
 class __PageState extends State<_Page> {
   bool _useDark = false;
-  bool _play = false;
   StreamSubscription onReadyToPlay;
-  StreamSubscription currentPosition;
+  StreamSubscription currentPosition, musicInfo;
   String totalDuration = '0.00';
   String currentDuration = '0.00';
   double totalSeconds = 0.0;
   double currentSeconds = 0.0;
-   @override
+  int playIndex = 0;
+  @override
   void initState() {
     onReadyToPlay =
         AudioInstance().assetsAudioPlayer.onReadyToPlay.listen((event) {
@@ -67,6 +66,17 @@ class __PageState extends State<_Page> {
         currentSeconds = event.inSeconds.toDouble();
       });
     });
+    musicInfo = AudioInstance()
+        .assetsAudioPlayer
+        .realtimePlayingInfos
+        .listen((RealtimePlayingInfos event) {
+      if (playIndex != event.current.index) {
+        playIndex = event.current.index;
+        context
+            .read<CurrentSong>()
+            .setSong(context.read<CurrentSong>().playList[event.current.index]);
+      }
+    });
     super.initState();
   }
 
@@ -74,8 +84,10 @@ class __PageState extends State<_Page> {
   void dispose() {
     onReadyToPlay.cancel();
     currentPosition.cancel();
+    musicInfo.cancel();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,7 +138,7 @@ class __PageState extends State<_Page> {
           Align(
             alignment: Alignment.center,
             child: Text(
-              widget.currentPlay.name,
+              Provider.of<CurrentSong>(context).song.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style:
@@ -165,12 +177,12 @@ class __PageState extends State<_Page> {
         boxShape: NeumorphicBoxShape.circle(),
       ),
       child: Hero(
-        tag: widget.currentPlay.id,
+        tag: Provider.of<CurrentSong>(context).song.id,
         child: Container(
             height: 200,
             width: 200,
             child: Image.network(
-              widget.currentPlay.album.picUrl,
+              Provider.of<CurrentSong>(context).song.album.picUrl,
               fit: BoxFit.cover,
             )),
       ),
@@ -226,8 +238,8 @@ class __PageState extends State<_Page> {
             height: 8,
           ),
           NeumorphicSlider(
-            height: 8,
-            min: 0,
+            height: 8.0,
+            min: 0.0,
             max: totalSeconds,
             value: currentSeconds,
           )
@@ -242,7 +254,15 @@ class __PageState extends State<_Page> {
       children: <Widget>[
         NeumorphicButton(
           padding: const EdgeInsets.all(18.0),
-          onPressed: () {},
+          onPressed: () {
+            AudioInstance().prev().then((value) => {
+                  context.read<CurrentSong>().setSong(
+                      context.read<CurrentSong>().playList[AudioInstance()
+                          .assetsAudioPlayer
+                          .readingPlaylist
+                          .currentIndex])
+                });
+          },
           style: NeumorphicStyle(
             shape: NeumorphicShape.flat,
             boxShape: NeumorphicBoxShape.circle(),
@@ -256,25 +276,35 @@ class __PageState extends State<_Page> {
         NeumorphicButton(
           padding: const EdgeInsets.all(24.0),
           onPressed: () {
-              setState(() {
-                _play = !_play;
-              });
-              AudioInstance().playOrPause();
-            },
+            AudioInstance().playOrPause();
+          },
           style: NeumorphicStyle(
             shape: NeumorphicShape.flat,
             boxShape: NeumorphicBoxShape.circle(),
           ),
-          child: Icon(
-             _play ? Icons.play_arrow : Icons.pause,
-            size: 42,
-            color: _iconsColor(),
-          ),
+          child: StreamBuilder(
+              stream: AudioInstance().assetsAudioPlayer.isPlaying,
+              builder: (context, snapshot) {
+                final bool isPlaying = snapshot.data;
+                return Icon(
+                  isPlaying ? Icons.pause : Icons.play_arrow,
+                  size: 42,
+                  color: _iconsColor(),
+                );
+              }),
         ),
         const SizedBox(width: 12),
         NeumorphicButton(
           padding: const EdgeInsets.all(18.0),
-          onPressed: () {},
+          onPressed: () {
+            AudioInstance().next().then((value) => {
+                  context.read<CurrentSong>().setSong(
+                      context.read<CurrentSong>().playList[AudioInstance()
+                          .assetsAudioPlayer
+                          .readingPlaylist
+                          .currentIndex])
+                });
+          },
           style: NeumorphicStyle(
             shape: NeumorphicShape.flat,
             boxShape: NeumorphicBoxShape.circle(),

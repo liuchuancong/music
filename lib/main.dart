@@ -1,15 +1,21 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:music/components/audioControl.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:music/theme/ThemeConfigurator.dart';
 import 'common/textColor.dart';
+import 'components/actionButtonLocation.dart';
 import 'components/textField.dart';
 import 'package:dio/dio.dart';
-
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'json_convert/songs.dart';
+import 'package:provider/provider.dart';
+import 'model/currentSong.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(MultiProvider(providers: [
+      ChangeNotifierProvider(create: (_) => CurrentSong(null)),
+    ], child: MyApp()));
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -17,7 +23,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return NeumorphicApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Flutter Music',
       themeMode: ThemeMode.light,
       theme: NeumorphicThemeData(
         baseColor: Color(0xFFFFFFFF),
@@ -43,14 +49,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Dio dio = new Dio();
-
+  RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
   int pageNo = 1;
-
   String _text = '';
-  SongsData songsData = new SongsData();
   List<Widget> songsList = [];
   SongList currentPlay;
-  bool _play = false;
+  List<SongList> playList = [];
   void getSongList() async {
     try {
       Response response = await Dio().get("http://api.migu.jsososo.com/search",
@@ -58,25 +63,30 @@ class _MyHomePageState extends State<MyHomePage> {
       Map songsMap = json.decode(response.toString());
       Songs songs = new Songs.fromJson(songsMap);
       if (songs.result == 100) {
-        setState(() {
-          songsData = songs.data;
-        });
-        getSongsDetail();
+        getSongsDetail(songs.data);
+      } else {
+        _refreshController.loadFailed();
       }
     } catch (e) {
-      print(e);
+      _refreshController.loadFailed();
     }
   }
 
   void _payMusic(SongList song) {
-    setState(() {
-      currentPlay = song;
-    });
-    AudioInstance().initAudio(song.url);
+    context.read<CurrentSong>().setSong(song);
+    AudioInstance().initAudio(song);
   }
 
-  getSongsDetail() {
-    if (songsData != null && songsData.list != null) {
+  void _onLoading() async {
+    this.getSongList();
+  }
+
+  getSongsDetail(SongsData songsData) {
+    if (songsData != null &&
+        songsData.list != null &&
+        songsData.list.length > 0) {
+      playList.addAll(songsData.list);
+      context.read<CurrentSong>().setPlayList(playList);
       var usefulList = songsData.list.where((item) => item.url != null);
       var songs = usefulList
           .map((e) => Container(
@@ -93,25 +103,28 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ))
           .toList();
-      print(songs);
       setState(() {
-        songsList = songs;
+        songsList.addAll(songs);
+        pageNo++;
       });
+      _refreshController.loadComplete();
+    } else {
+      _refreshController.loadNoData();
     }
   }
 
-  playOrPause() async {
-    setState(() {
-      _play = !_play;
-    });
-    await AudioInstance().assetsAudioPlayer.playOrPause();
+  _playAllMusic() {
+    AudioInstance().initAudioList(playList).then((value) => {
+          context.read<CurrentSong>().setSong(playList[
+              AudioInstance().assetsAudioPlayer.readingPlaylist.currentIndex])
+        });
   }
 
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: NeumorphicAppBar(
           title: NeumorphicText(
-            "I love flutter",
+            "Flutter Music",
             style: NeumorphicStyle(
               depth: 4, //customize depth here
               color: textColor(context), //customize color here
@@ -128,6 +141,24 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
         backgroundColor: NeumorphicTheme.baseColor(context),
+        floatingActionButton: context.watch<CurrentSong>().playList.length != 0
+            ? NeumorphicButton(
+                onPressed: _playAllMusic,
+                style: NeumorphicStyle(
+                  shape: NeumorphicShape.flat,
+                  depth: 1,
+                ),
+                child: NeumorphicText(
+                  '全部播放',
+                  style: NeumorphicStyle(
+                    depth: 0, //customize depth here
+                    color: textColor(context), //customize color here
+                  ),
+                  textStyle: NeumorphicTextStyle(),
+                ))
+            : null,
+        floatingActionButtonLocation: CustomFloatingActionButtonLocation(
+            FloatingActionButtonLocation.endFloat, 0, -80),
         body: Column(
           children: <Widget>[
             TextSearchField(
@@ -135,19 +166,78 @@ class _MyHomePageState extends State<MyHomePage> {
               onSubmit: (text) {
                 setState(() {
                   _text = text;
+                  pageNo = 1;
+                  songsList = [];
+                  playList = [];
                 });
                 getSongList();
               },
             ),
             Expanded(
-              child: ListView(
-                children:
-                    ListTile.divideTiles(tiles: songsList, context: context)
-                        .toList(),
+              child: SmartRefresher(
+                enablePullDown: false,
+                enablePullUp: true,
+                footer: CustomFooter(
+                  builder: (BuildContext context, LoadStatus mode) {
+                    Widget body;
+                    if (mode == LoadStatus.idle) {
+                      body = NeumorphicText(
+                        "上拉加载更多~",
+                        style: NeumorphicStyle(
+                          depth: 4, //customize depth here
+                          color: textColor(context), //customize color here
+                        ),
+                        textStyle: NeumorphicTextStyle(),
+                      );
+                    } else if (mode == LoadStatus.loading) {
+                      body = CupertinoActivityIndicator();
+                    } else if (mode == LoadStatus.failed) {
+                      body = NeumorphicText(
+                        "加载失败,请稍后重试~",
+                        style: NeumorphicStyle(
+                          depth: 4, //customize depth here
+                          color: textColor(context), //customize color here
+                        ),
+                        textStyle: NeumorphicTextStyle(),
+                      );
+                    } else if (mode == LoadStatus.canLoading) {
+                      body = NeumorphicText(
+                        "松开加载~",
+                        style: NeumorphicStyle(
+                          depth: 4, //customize depth here
+                          color: textColor(context), //customize color here
+                        ),
+                        textStyle: NeumorphicTextStyle(),
+                      );
+                    } else {
+                      body = NeumorphicText(
+                        "没有更多了",
+                        style: NeumorphicStyle(
+                          depth: 4, //customize depth here
+                          color: textColor(context), //customize color here
+                        ),
+                        textStyle: NeumorphicTextStyle(),
+                      );
+                    }
+                    return Container(
+                      height: 55.0,
+                      child: Center(child: body),
+                    );
+                  },
+                ),
+                controller: _refreshController,
+                onLoading: _onLoading,
+                header: WaterDropHeader(),
+                child: ListView(
+                  children:
+                      ListTile.divideTiles(tiles: songsList, context: context)
+                          .toList(),
+                ),
               ),
             ),
-            currentPlay != null
-                ? MyPageWithAudio(currentPlay: currentPlay)
+            context.watch<CurrentSong>().song != null
+                ? MyPageWithAudio(
+                    currentPlay: context.watch<CurrentSong>().song)
                 : Container()
           ],
         ));

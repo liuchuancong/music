@@ -18,7 +18,7 @@ class _TextSearchFieldState extends State<TextSearchField> {
   double _height = 60.0;
   @override
   void initState() {
-    _controller = TextEditingController(text: widget.hint);
+    _controller = TextEditingController();
     super.initState();
   }
 

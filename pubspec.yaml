@@ -26,7 +26,8 @@ dependencies:
   flutter_neumorphic: ^3.0.1
   flutter_colorpicker: ^0.3.4
   dio: ^3.0.9
-
+  flutter_downloader: ^1.4.4
+  permission_handler: ^5.0.1
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.3

@@ -3,6 +3,7 @@ import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:music/components/audioControl.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:music/theme/ThemeConfigurator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'common/textColor.dart';
 import 'components/textField.dart';
 import 'package:dio/dio.dart';
@@ -51,6 +52,21 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Widget> songsList = [];
   SongList currentPlay;
   bool _play = false;
+  @override
+  void initState() {
+    requestPermission();
+    super.initState();
+  }
+
+  // 申请权限
+  Future<void> requestPermission() async {
+    var status = await Permission.storage.status;
+
+    if (status.isUndetermined) {
+      await Permission.storage.request();
+    }
+  }
+
   void getSongList() async {
     try {
       Response response = await Dio().get("http://api.migu.jsososo.com/search",

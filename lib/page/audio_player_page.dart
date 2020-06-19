@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
@@ -54,13 +53,16 @@ class __PageState extends State<_Page> {
   void initState() {
     onReadyToPlay =
         AudioInstance().assetsAudioPlayer.onReadyToPlay.listen((event) {
-      setState(() {
-        totalDuration = event.duration.mmSSFormat;
-        totalSeconds = event.duration.inSeconds.toDouble();
-      });
+      if (event.duration != null) {
+        setState(() {
+          totalDuration = event.duration.mmSSFormat;
+          totalSeconds = event.duration.inSeconds.toDouble();
+        });
+      }
     });
     currentPosition =
         AudioInstance().assetsAudioPlayer.currentPosition.listen((event) {
+      if (event != null) {}
       setState(() {
         currentDuration = "${event.mmSSFormat}";
         currentSeconds = event.inSeconds.toDouble();
@@ -70,11 +72,12 @@ class __PageState extends State<_Page> {
         .assetsAudioPlayer
         .realtimePlayingInfos
         .listen((RealtimePlayingInfos event) {
-      if (playIndex != event.current.index) {
-        playIndex = event.current.index;
-        context
-            .read<CurrentSong>()
-            .setSong(context.read<CurrentSong>().playList[event.current.index]);
+      if (event.current != null && event.current.index != null) {
+        if (playIndex != event.current.index) {
+          playIndex = event.current.index;
+          context.read<CurrentSong>().setSong(
+              context.read<CurrentSong>().tempplayList[event.current.index]);
+        }
       }
     });
     super.initState();
@@ -136,16 +139,6 @@ class __PageState extends State<_Page> {
             ),
           ),
           Align(
-            alignment: Alignment.center,
-            child: Text(
-              Provider.of<CurrentSong>(context).song.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  TextStyle(color: NeumorphicTheme.defaultTextColor(context)),
-            ),
-          ),
-          Align(
             alignment: Alignment.centerRight,
             child: NeumorphicButton(
               padding: const EdgeInsets.all(18.0),
@@ -193,7 +186,7 @@ class __PageState extends State<_Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Text("Blinding Lights",
+        Text(Provider.of<CurrentSong>(context).song.name,
             style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 34,
@@ -201,7 +194,7 @@ class __PageState extends State<_Page> {
         const SizedBox(
           height: 4,
         ),
-        Text("The Weeknd",
+        Text(Provider.of<CurrentSong>(context).song.artists[0].name,
             style: TextStyle(
                 fontWeight: FontWeight.w400,
                 fontSize: 14,
@@ -242,6 +235,14 @@ class __PageState extends State<_Page> {
             min: 0.0,
             max: totalSeconds,
             value: currentSeconds,
+            onChanged: (value) {
+              int flooredValue = value.floor();
+              int hour = (flooredValue / 3600).floor();
+              int min = (flooredValue / 60).floor();
+              int sec = (flooredValue % 60).floor();
+              AudioInstance()
+                  .seek(Duration(minutes: min, seconds: sec, hours: hour));
+            },
           )
         ],
       ),
@@ -285,7 +286,10 @@ class __PageState extends State<_Page> {
           child: StreamBuilder(
               stream: AudioInstance().assetsAudioPlayer.isPlaying,
               builder: (context, snapshot) {
-                final bool isPlaying = snapshot.data;
+                bool isPlaying = snapshot.data;
+                if (snapshot.data == null) {
+                  isPlaying = false;
+                }
                 return Icon(
                   isPlaying ? Icons.pause : Icons.play_arrow,
                   size: 42,

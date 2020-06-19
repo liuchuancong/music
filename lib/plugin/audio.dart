@@ -1,4 +1,5 @@
 import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:music/json_convert/songs.dart';
 
 class AudioInstance {
@@ -45,9 +46,18 @@ class AudioInstance {
     }
   }
 
+  void showCenterShortToast() {
+    Fluttertoast.showToast(
+        msg: "请先添加歌曲",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1);
+  }
+
   Future<void> initAudioList(List<SongList> songsList) async {
-    if (isPlay) {
-      stop();
+    if (songsList.length == 0) {
+      showCenterShortToast();
+      return;
     }
     try {
       List<Audio> playList = songsList
@@ -62,6 +72,9 @@ class AudioInstance {
                 ),
               ))
           .toList();
+      if (isPlay) {
+        stop();
+      }
       assetsAudioPlayer.open(Playlist(audios: playList),
           loopMode: LoopMode.playlist, showNotification: true);
     } catch (t) {
@@ -78,6 +91,16 @@ class AudioInstance {
         image: MetasImage.network(song.album.picUrl), //c
       );
     }
+  }
+
+  Future<void> seekBy(Duration by) async {
+    await assetsAudioPlayer.seekBy(by);
+  }
+  Future<void> playlistPlayAtIndex(int index) async {
+    await assetsAudioPlayer.playlistPlayAtIndex(index);
+  }
+  Future<void> seek(Duration by) async {
+    await assetsAudioPlayer.seek(by);
   }
 
   Future<void> playOrPause() async {

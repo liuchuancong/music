@@ -29,27 +29,32 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
   void initState() {
     onReadyToPlay =
         AudioInstance().assetsAudioPlayer.onReadyToPlay.listen((event) {
-      setState(() {
-        _currentPosition =
-            "${Duration().mmSSFormat} / ${event.duration.mmSSFormat}";
-        totalDuration = event.duration.mmSSFormat;
-      });
+      if (event.duration != null) {
+        setState(() {
+          _currentPosition =
+              "${Duration().mmSSFormat} / ${event.duration.mmSSFormat}";
+          totalDuration = event.duration.mmSSFormat;
+        });
+      }
     });
     currentPosition =
         AudioInstance().assetsAudioPlayer.currentPosition.listen((event) {
-      setState(() {
-        _currentPosition = "${event.mmSSFormat} / $totalDuration";
-      });
+      if (event != null) {
+        setState(() {
+          _currentPosition = "${event.mmSSFormat} / $totalDuration";
+        });
+      }
     });
     musicInfo = AudioInstance()
         .assetsAudioPlayer
         .realtimePlayingInfos
         .listen((RealtimePlayingInfos event) {
-      if (playIndex != event.current.index) {
-        playIndex = event.current.index;
-        context
-            .read<CurrentSong>()
-            .setSong(context.read<CurrentSong>().playList[event.current.index]);
+      if (event.current != null && event.current.index != null) {
+        if (playIndex != event.current.index) {
+          playIndex = event.current.index;
+          context.read<CurrentSong>().setSong(
+              context.read<CurrentSong>().tempplayList[event.current.index]);
+        }
       }
     });
     super.initState();
@@ -65,107 +70,119 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      isThreeLine: true,
-      leading: Hero(
-        tag: Provider.of<CurrentSong>(context).song.id,
-        child: Provider.of<CurrentSong>(context).song.album.picUrl != null
-            ? new Image.network(
-                Provider.of<CurrentSong>(context).song.album.picUrl)
-            : new Image.asset('assets/notFound.jpeg'),
+    return Material(
+      elevation: 5,
+      child: ListTile(
+        isThreeLine: true,
+        leading: Hero(
+          tag: Provider.of<CurrentSong>(context).song.id,
+          child: Provider.of<CurrentSong>(context).song.album.picUrl != null
+              ? new Image.network(
+                  Provider.of<CurrentSong>(context).song.album.picUrl)
+              : new Image.asset('assets/notFound.jpeg'),
+        ),
+        title: new Text(
+          Provider.of<CurrentSong>(context).song.name,
+          softWrap: false,
+        ),
+        subtitle: Column(
+          children: [
+            new Text(
+              Provider.of<CurrentSong>(context).song.artists[0].name,
+              softWrap: false,
+            ),
+            new Text(
+              _currentPosition,
+              softWrap: false,
+            )
+          ],
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        trailing: Wrap(
+          spacing: 0, // space between two icons
+          children: <Widget>[
+            NeumorphicButton(
+              onPressed: () {
+                AudioInstance().prev().then((value) => {
+                      print(AudioInstance()
+                          .assetsAudioPlayer
+                          .readingPlaylist
+                          .currentIndex),
+                      context.read<CurrentSong>().setSong(
+                          context.read<CurrentSong>().playList[AudioInstance()
+                              .assetsAudioPlayer
+                              .readingPlaylist
+                              .currentIndex])
+                    });
+              },
+              style: NeumorphicStyle(
+                shape: NeumorphicShape.flat,
+                boxShape: NeumorphicBoxShape.circle(),
+              ),
+              child: Icon(
+                Icons.skip_previous,
+                size: 20,
+                color: _iconsColor(),
+              ),
+            ),
+            NeumorphicButton(
+              onPressed: () {
+                AudioInstance().playOrPause();
+              },
+              style: NeumorphicStyle(
+                shape: NeumorphicShape.flat,
+                boxShape: NeumorphicBoxShape.circle(),
+              ),
+              child: StreamBuilder(
+                  stream: AudioInstance().assetsAudioPlayer.isPlaying,
+                  builder: (context, snapshot) {
+                    bool isPlaying = snapshot.data;
+                    if (snapshot.data == null) {
+                      isPlaying = false;
+                    }
+                    return Icon(
+                      isPlaying ? Icons.pause : Icons.play_arrow,
+                      size: 20,
+                      color: _iconsColor(),
+                    );
+                  }),
+            ),
+            NeumorphicButton(
+              onPressed: () {
+                AudioInstance().next().then((value) => {
+                      context.read<CurrentSong>().setSong(
+                          context.read<CurrentSong>().playList[AudioInstance()
+                              .assetsAudioPlayer
+                              .readingPlaylist
+                              .currentIndex])
+                    });
+              },
+              style: NeumorphicStyle(
+                shape: NeumorphicShape.flat,
+                boxShape: NeumorphicBoxShape.circle(),
+              ),
+              child: Icon(
+                Icons.skip_next,
+                size: 20,
+                color: _iconsColor(),
+              ),
+            ), // icon-2
+          ],
+        ),
+        onTap: () {
+          //打开B路由
+          Navigator.push(context, PageRouteBuilder(pageBuilder:
+              (BuildContext context, Animation animation,
+                  Animation secondaryAnimation) {
+            return new FadeTransition(
+              opacity: animation,
+              child: AudioPlayerPage(
+                  currentPlay: Provider.of<CurrentSong>(context).song),
+            );
+          }));
+        },
       ),
-      title: new Text(
-        Provider.of<CurrentSong>(context).song.name,
-        softWrap: false,
-      ),
-      subtitle: Column(
-        children: [
-          new Text(Provider.of<CurrentSong>(context).song.artists[0].name),
-          Text(_currentPosition)
-        ],
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-      ),
-      trailing: Wrap(
-        spacing: 12, // space between two icons
-        children: <Widget>[
-          NeumorphicButton(
-            onPressed: () {
-              AudioInstance().prev().then((value) => {
-                    print(AudioInstance()
-                        .assetsAudioPlayer
-                        .readingPlaylist
-                        .currentIndex),
-                    context.read<CurrentSong>().setSong(
-                        context.read<CurrentSong>().playList[AudioInstance()
-                            .assetsAudioPlayer
-                            .readingPlaylist
-                            .currentIndex])
-                  });
-            },
-            style: NeumorphicStyle(
-              shape: NeumorphicShape.flat,
-              boxShape: NeumorphicBoxShape.circle(),
-            ),
-            child: Icon(
-              Icons.skip_previous,
-              size: 20,
-              color: _iconsColor(),
-            ),
-          ),
-          NeumorphicButton(
-            onPressed: () {
-              AudioInstance().playOrPause();
-            },
-            style: NeumorphicStyle(
-              shape: NeumorphicShape.flat,
-              boxShape: NeumorphicBoxShape.circle(),
-            ),
-            child: StreamBuilder(
-                stream: AudioInstance().assetsAudioPlayer.isPlaying,
-                builder: (context, snapshot) {
-                  final bool isPlaying = snapshot.data;
-                  return Icon(
-                    isPlaying ? Icons.pause : Icons.play_arrow,
-                    size: 20,
-                    color: _iconsColor(),
-                  );
-                }),
-          ),
-          NeumorphicButton(
-            onPressed: () {
-              AudioInstance().next().then((value) => {
-                    context.read<CurrentSong>().setSong(
-                        context.read<CurrentSong>().playList[AudioInstance()
-                            .assetsAudioPlayer
-                            .readingPlaylist
-                            .currentIndex])
-                  });
-            },
-            style: NeumorphicStyle(
-              shape: NeumorphicShape.flat,
-              boxShape: NeumorphicBoxShape.circle(),
-            ),
-            child: Icon(
-              Icons.skip_next,
-              size: 20,
-              color: _iconsColor(),
-            ),
-          ), // icon-2
-        ],
-      ),
-      onTap: () {
-        //打开B路由
-        Navigator.push(context, PageRouteBuilder(pageBuilder:
-            (BuildContext context, Animation animation,
-                Animation secondaryAnimation) {
-          return new FadeTransition(
-            opacity: animation,
-            child: AudioPlayerPage(
-                currentPlay: Provider.of<CurrentSong>(context).song),
-          );
-        }));
-      },
     );
   }
 

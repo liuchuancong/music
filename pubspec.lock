@@ -36,6 +36,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.4.1"
+  backdrop:
+    dependency: "direct main"
+    description:
+      name: backdrop
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.4.1"
   boolean_selector:
     dependency: transitive
     description:
@@ -111,6 +118,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.4.4"
+  flutter_inner_drawer:
+    dependency: "direct main"
+    description:
+      name: flutter_inner_drawer
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.5.6+1"
   flutter_neumorphic:
     dependency: "direct main"
     description:
@@ -128,6 +142,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  fluttertoast:
+    dependency: "direct main"
+    description:
+      name: fluttertoast
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "4.0.1"
   http_parser:
     dependency: transitive
     description:

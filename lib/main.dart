@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'package:backdrop/backdrop.dart';
+import 'package:backdrop/scaffold.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_inner_drawer/inner_drawer.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:music/components/audioControl.dart';
 import 'package:music/plugin/audio.dart';
-import 'package:music/theme/ThemeConfigurator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'common/textColor.dart';
-import 'components/actionButtonLocation.dart';
+import 'components/songListItem.dart';
 import 'components/textField.dart';
 import 'package:dio/dio.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -49,6 +51,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  //  Current State of InnerDrawerState
+  final GlobalKey<InnerDrawerState> _innerDrawerKey =
+      GlobalKey<InnerDrawerState>();
   Dio dio = new Dio();
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
@@ -130,132 +135,188 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _playAllMusic() {
+    if (playList.length == 0) {
+      return;
+    }
     AudioInstance().initAudioList(playList).then((value) => {
+          context.read<CurrentSong>().setTempplayList(playList),
           context.read<CurrentSong>().setSong(playList[
               AudioInstance().assetsAudioPlayer.readingPlaylist.currentIndex])
         });
   }
 
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: NeumorphicAppBar(
-          title: NeumorphicText(
-            "Flutter Music",
-            style: NeumorphicStyle(
-              depth: 4, //customize depth here
-              color: textColor(context), //customize color here
-            ),
-            textStyle: NeumorphicTextStyle(
-              fontSize: 18, //customize size here
-            ),
+    return InnerDrawer(
+      key: _innerDrawerKey,
+      leftChild: Material(
+        child: Container(
+          decoration: BoxDecoration(color: Color(0xFFDDE6E8)),
+          child: ListView(
+            children: <Widget>[
+              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+              ListTile(
+                title: Text('我喜欢的'),
+              )
+            ],
           ),
-          actions: <Widget>[
-            SizedBox(
-              width: 20,
-              child: ThemeConfigurator(),
-            )
-          ],
         ),
-        backgroundColor: NeumorphicTheme.baseColor(context),
-        floatingActionButton: context.watch<CurrentSong>().playList.length != 0
-            ? NeumorphicButton(
-                onPressed: _playAllMusic,
+      ),
+      scale: IDOffset.horizontal(0.8),
+      proportionalChildArea: true,
+      backgroundDecoration: BoxDecoration(color: Color(0xFFDDE6E8)),
+      onTapClose: true,
+      borderRadius: 50,
+      leftAnimationType: InnerDrawerAnimation.quadratic, // default static
+      scaffold: BackdropScaffold(
+          backLayerBackgroundColor: Color(0xFF000000),
+          appBar: BackdropAppBar(
+            backgroundColor: Color(0xFF000000),
+            actionsIconTheme: NeumorphicTheme.currentTheme(context).iconTheme,
+            leading: IconButton(
+              icon: new NeumorphicIcon(Icons.menu),
+              onPressed: () {
+                _innerDrawerKey.currentState
+                    .toggle(direction: InnerDrawerDirection.start);
+              },
+            ),
+            title: NeumorphicText(
+              "Flutter Music",
+              style: NeumorphicStyle(
+                depth: 4, //customize depth here
+                color: Colors.white, //customize color here
+              ),
+              textStyle: NeumorphicTextStyle(
+                fontSize: 18, //customize size here
+              ),
+            ),
+            actions: <Widget>[
+              BackdropToggleButton(
+                icon: AnimatedIcons.view_list,
+              )
+            ],
+          ),
+          subHeader: BackdropSubHeader(
+              title: Row(
+            children: <Widget>[
+              NeumorphicButton(
                 style: NeumorphicStyle(
-                  shape: NeumorphicShape.flat,
-                  depth: 1,
-                ),
+                    shape: NeumorphicShape.flat,
+                    depth: 1,
+                    intensity: 1,
+                    boxShape: NeumorphicBoxShape.stadium()),
+                onPressed: _playAllMusic,
                 child: NeumorphicText(
                   '全部播放',
                   style: NeumorphicStyle(
                     depth: 0, //customize depth here
                     color: textColor(context), //customize color here
                   ),
-                  textStyle: NeumorphicTextStyle(),
-                ))
-            : null,
-        floatingActionButtonLocation: CustomFloatingActionButtonLocation(
-            FloatingActionButtonLocation.endFloat, 0, -80),
-        body: Column(
-          children: <Widget>[
-            TextSearchField(
-              hint: "请输入歌曲名或者作者",
-              onSubmit: (text) {
-                setState(() {
-                  _text = text;
-                  pageNo = 1;
-                  songsList = [];
-                  playList = [];
-                });
-                getSongList();
-              },
-            ),
-            Expanded(
-              child: SmartRefresher(
-                enablePullDown: false,
-                enablePullUp: true,
-                footer: CustomFooter(
-                  builder: (BuildContext context, LoadStatus mode) {
-                    Widget body;
-                    if (mode == LoadStatus.idle) {
-                      body = NeumorphicText(
-                        "上拉加载更多~",
-                        style: NeumorphicStyle(
-                          depth: 4, //customize depth here
-                          color: textColor(context), //customize color here
-                        ),
-                        textStyle: NeumorphicTextStyle(),
-                      );
-                    } else if (mode == LoadStatus.loading) {
-                      body = CupertinoActivityIndicator();
-                    } else if (mode == LoadStatus.failed) {
-                      body = NeumorphicText(
-                        "加载失败,请稍后重试~",
-                        style: NeumorphicStyle(
-                          depth: 4, //customize depth here
-                          color: textColor(context), //customize color here
-                        ),
-                        textStyle: NeumorphicTextStyle(),
-                      );
-                    } else if (mode == LoadStatus.canLoading) {
-                      body = NeumorphicText(
-                        "松开加载~",
-                        style: NeumorphicStyle(
-                          depth: 4, //customize depth here
-                          color: textColor(context), //customize color here
-                        ),
-                        textStyle: NeumorphicTextStyle(),
-                      );
-                    } else {
-                      body = NeumorphicText(
-                        "没有更多了",
-                        style: NeumorphicStyle(
-                          depth: 4, //customize depth here
-                          color: textColor(context), //customize color here
-                        ),
-                        textStyle: NeumorphicTextStyle(),
-                      );
-                    }
-                    return Container(
-                      height: 55.0,
-                      child: Center(child: body),
-                    );
-                  },
+                  textStyle: NeumorphicTextStyle(fontSize: 10),
                 ),
-                controller: _refreshController,
-                onLoading: _onLoading,
-                header: WaterDropHeader(),
-                child: ListView(
-                  children:
-                      ListTile.divideTiles(tiles: songsList, context: context)
-                          .toList(),
+              )
+            ],
+          )),
+          backLayer: context.watch<CurrentSong>().tempplayList.length > 0
+              ? BackdropNavigationBackLayer(
+                  onTap: (int index) {
+                    context.read<CurrentSong>().setSong(
+                        context.read<CurrentSong>().tempplayList[index]);
+                    AudioInstance().playlistPlayAtIndex(index);
+                  },
+                  items: context
+                      .watch<CurrentSong>()
+                      .tempplayList
+                      .map((song) => SongListItem(
+                            song: song,
+                          ))
+                      .toList(),
+                )
+              : null,
+          frontLayer: Column(
+            children: <Widget>[
+              SizedBox(
+                height: 20,
+              ),
+              TextSearchField(
+                hint: "请输入歌曲名或者作者",
+                onSubmit: (text) {
+                  setState(() {
+                    _text = text;
+                    pageNo = 1;
+                    songsList = [];
+                    playList = [];
+                  });
+                  getSongList();
+                },
+              ),
+              Expanded(
+                child: SmartRefresher(
+                  enablePullDown: false,
+                  enablePullUp: true,
+                  footer: CustomFooter(
+                    builder: (BuildContext context, LoadStatus mode) {
+                      Widget body;
+                      if (mode == LoadStatus.idle) {
+                        body = NeumorphicText(
+                          "上拉加载更多~",
+                          style: NeumorphicStyle(
+                            depth: 4, //customize depth here
+                            color: textColor(context), //customize color here
+                          ),
+                          textStyle: NeumorphicTextStyle(),
+                        );
+                      } else if (mode == LoadStatus.loading) {
+                        body = CupertinoActivityIndicator();
+                      } else if (mode == LoadStatus.failed) {
+                        body = NeumorphicText(
+                          "加载失败,请稍后重试~",
+                          style: NeumorphicStyle(
+                            depth: 4, //customize depth here
+                            color: textColor(context), //customize color here
+                          ),
+                          textStyle: NeumorphicTextStyle(),
+                        );
+                      } else if (mode == LoadStatus.canLoading) {
+                        body = NeumorphicText(
+                          "松开加载~",
+                          style: NeumorphicStyle(
+                            depth: 4, //customize depth here
+                            color: textColor(context), //customize color here
+                          ),
+                          textStyle: NeumorphicTextStyle(),
+                        );
+                      } else {
+                        body = NeumorphicText(
+                          "没有更多了",
+                          style: NeumorphicStyle(
+                            depth: 4, //customize depth here
+                            color: textColor(context), //customize color here
+                          ),
+                          textStyle: NeumorphicTextStyle(),
+                        );
+                      }
+                      return Container(
+                        height: 55.0,
+                        child: Center(child: body),
+                      );
+                    },
+                  ),
+                  controller: _refreshController,
+                  onLoading: _onLoading,
+                  header: WaterDropHeader(),
+                  child: ListView(
+                    children:
+                        ListTile.divideTiles(tiles: songsList, context: context)
+                            .toList(),
+                  ),
                 ),
               ),
-            ),
-            context.watch<CurrentSong>().song != null
-                ? MyPageWithAudio(
-                    currentPlay: context.watch<CurrentSong>().song)
-                : Container()
-          ],
-        ));
+              context.watch<CurrentSong>().song != null
+                  ? MyPageWithAudio(
+                      currentPlay: context.watch<CurrentSong>().song)
+                  : Container()
+            ],
+          )),
+    );
   }
 }

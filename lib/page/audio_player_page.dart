@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:marquee/marquee.dart';
+import 'package:music/components/blurBackground.dart';
 import 'package:music/lyric/lyric.dart';
 import 'package:music/model/currentSong.dart';
+import 'package:music/page/painter.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:provider/provider.dart';
 import '../plugin/duration.dart';
@@ -28,7 +33,7 @@ class _AudioPlayerPageState extends State<AudioPlayerPage> {
     return NeumorphicTheme(
         themeMode: ThemeMode.light,
         theme: NeumorphicThemeData(
-          defaultTextColor: Color(0xFF3E3E3E),
+          defaultTextColor: Color(0xFFFFFFFF),
           baseColor: Color(0xFFDDE6E8),
           intensity: 0.5,
           lightSource: LightSource.topLeft,
@@ -46,8 +51,7 @@ class _Page extends StatefulWidget {
   __PageState createState() => __PageState();
 }
 
-class __PageState extends State<_Page> {
-  bool _useDark = false;
+class __PageState extends State<_Page> with TickerProviderStateMixin {
   StreamSubscription onReadyToPlay;
   StreamSubscription currentPosition, musicInfo;
   String totalDuration = '0.00';
@@ -56,7 +60,9 @@ class __PageState extends State<_Page> {
   double currentSeconds = 0.0;
   int playIndex = 0;
   bool _showLyric = false;
+  AnimationController controller, _waveController;
   LyricContent lyricContent;
+  Animation animation;
   @override
   void initState() {
     onReadyToPlay =
@@ -88,12 +94,20 @@ class __PageState extends State<_Page> {
         }
       }
     });
+    controller =
+        new AnimationController(vsync: this, duration: Duration(seconds: 15));
+    _waveController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat();
     _getSonglyric();
     super.initState();
   }
 
   @override
   void dispose() {
+    controller.dispose();
+    _waveController.dispose();
     onReadyToPlay.cancel();
     currentPosition.cancel();
     musicInfo.cancel();
@@ -118,11 +132,13 @@ class __PageState extends State<_Page> {
   }
 
   Widget _buildLyric(BuildContext context) {
-    TextStyle style = Theme.of(context).textTheme.bodyText2.copyWith(
-        height: 2, fontSize: 16, color: Colors.black.withOpacity(0.5));
-    if (lyricContent != null) {
+    TextStyle style = Theme.of(context)
+        .textTheme
+        .bodyText2
+        .copyWith(height: 2, fontSize: 16, color: Colors.white);
+    if (lyricContent != null && lyricContent.size > 0) {
       return LayoutBuilder(builder: (context, constraints) {
-        final normalStyle = style.copyWith(color: style.color.withOpacity(0.9));
+        final normalStyle = style.copyWith(color: style.color.withOpacity(0.7));
         //歌词顶部与尾部半透明显示
         return ShaderMask(
           shaderCallback: (rect) {
@@ -145,6 +161,13 @@ class __PageState extends State<_Page> {
                 bool isPlaying = snapshot.data;
                 if (snapshot.data == null) {
                   isPlaying = false;
+                }
+                if (isPlaying) {
+                  controller.repeat();
+                  _waveController.repeat();
+                } else {
+                  controller.stop();
+                  _waveController.stop();
                 }
                 return Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
@@ -204,22 +227,33 @@ class __PageState extends State<_Page> {
 
   @override
   Widget build(BuildContext context) {
+        if (Platform.isAndroid) {
+      SystemChrome.setEnabledSystemUIOverlays([]);
+    }
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomPadding: false,
       body: SafeArea(
         child: NeumorphicBackground(
-          child: Column(
+          child: Stack(
             children: <Widget>[
-              SizedBox(height: 14),
-              _buildTopBar(context),
-              SizedBox(height: 80),
-              _buildCenterSection(context),
-              SizedBox(height: 10),
-              _buildTitle(context),
-              SizedBox(height: 10),
-              _buildSeekBar(context),
-              SizedBox(height: 30),
-              _buildControlsBar(context),
-              SizedBox(height: 30),
+              BlurBackground(
+                  imageUrl: context.watch<CurrentSong>().song.album.picUrl),
+              Column(
+                children: <Widget>[
+                  SizedBox(height: 14),
+                  _buildTopBar(context),
+                  SizedBox(height: 80),
+                  _buildCenterSection(context),
+                  SizedBox(height: 10),
+                  _buildTitle(context),
+                  SizedBox(height: 10),
+                  _buildSeekBar(context),
+                  SizedBox(height: 30),
+                  _buildControlsBar(context),
+                  SizedBox(height: 30),
+                ],
+              ),
             ],
           ),
         ),
@@ -235,39 +269,25 @@ class __PageState extends State<_Page> {
         children: <Widget>[
           Align(
             alignment: Alignment.centerLeft,
-            child: NeumorphicButton(
+            child: IconButton(
               padding: const EdgeInsets.all(18.0),
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              style: NeumorphicStyle(
-                shape: NeumorphicShape.flat,
-                boxShape: NeumorphicBoxShape.circle(),
-              ),
-              child: Icon(
+              icon: Icon(
                 Icons.navigate_before,
-                color: _iconsColor(),
+                color: Colors.white,
               ),
             ),
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: NeumorphicButton(
+            child: IconButton(
               padding: const EdgeInsets.all(18.0),
-              onPressed: () {
-                setState(() {
-                  _useDark = !_useDark;
-                  NeumorphicTheme.of(context).themeMode =
-                      _useDark ? ThemeMode.dark : ThemeMode.light;
-                });
-              },
-              style: NeumorphicStyle(
-                shape: NeumorphicShape.flat,
-                boxShape: NeumorphicBoxShape.circle(),
-              ),
-              child: Icon(
+              onPressed: () {},
+              icon: Icon(
                 Icons.favorite_border,
-                color: _iconsColor(),
+                color: Colors.white,
               ),
             ),
           ),
@@ -277,24 +297,62 @@ class __PageState extends State<_Page> {
   }
 
   Widget _buildImage(BuildContext context) {
-    return Neumorphic(
-      style: NeumorphicStyle(
-        boxShape: NeumorphicBoxShape.circle(),
-      ),
-      child: Hero(
-        tag: Provider.of<CurrentSong>(context).song.id,
-        child: GestureDetector(
-          onTap: _setLyricState,
-          child: Container(
-              height: 200,
-              width: 200,
-              child:  Provider.of<CurrentSong>(context).song.album.picUrl != null
-              ? new CachedNetworkImage(
-                  imageUrl: Provider.of<CurrentSong>(context).song.album.picUrl,
-                  fit:BoxFit.cover
-                )
-              : new Image.asset('assets/notFound.jpeg'),
-        ),
+    double expandedSize = MediaQuery.of(context).size.width;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (BuildContext context, Widget child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            CustomPaint(
+              painter:
+                  RingOfCirclesPainter(Colors.white, _waveController.value),
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.rotationZ(-controller.value * 2 * pi),
+                child: GestureDetector(
+                  onTap: _setLyricState,
+                  child: Container(
+                      width: expandedSize * 0.8,
+                      height: expandedSize * 0.8,
+                      child: new Center(
+                          child: Container(
+                        width: 200,
+                        height: 200,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(200),
+                          child: Provider.of<CurrentSong>(context)
+                                      .song
+                                      .album
+                                      .picUrl !=
+                                  null
+                              ? new CachedNetworkImage(
+                                  imageUrl: Provider.of<CurrentSong>(context)
+                                      .song
+                                      .album
+                                      .picUrl,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (context, url, error) =>
+                                      new Image.asset(
+                                    'assets/music2.jpg',
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : new Image.asset(
+                                  'assets/music2.jpg',
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                      ))),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      child: Neumorphic(
+        style: NeumorphicStyle(
+          boxShape: NeumorphicBoxShape.circle(),
         ),
       ),
     );

@@ -17,7 +17,7 @@ class MyPageWithAudio extends StatefulWidget {
   _MyPageWithAudioState createState() => _MyPageWithAudioState();
 }
 
-class _MyPageWithAudioState extends State<MyPageWithAudio>{
+class _MyPageWithAudioState extends State<MyPageWithAudio> {
   String _currentPosition = "";
   StreamSubscription onReadyToPlay;
   StreamSubscription currentPosition;
@@ -73,29 +73,36 @@ class _MyPageWithAudioState extends State<MyPageWithAudio>{
       elevation: 5,
       child: ListTile(
         isThreeLine: true,
-        leading: Hero(
-          tag: Provider.of<CurrentSong>(context).song.id,
+        leading: Container(
+          width: 60,
+          height: 60,
           child: Provider.of<CurrentSong>(context).song.album.picUrl != null
               ? new CachedNetworkImage(
                   imageUrl: Provider.of<CurrentSong>(context).song.album.picUrl,
-                )
-              : new Image.asset('assets/notFound.jpeg'),
+                   progressIndicatorBuilder: (context, url, downloadProgress) =>
+                      CircularProgressIndicator(
+                          value: downloadProgress.progress),
+                  errorWidget: (context, url, error) => new Image.asset('assets/music1.jpg', fit: BoxFit.cover),
+                  fit: BoxFit.cover)
+              : new Image.asset('assets/music1.jpg', fit: BoxFit.cover),
         ),
-        title: Provider.of<CurrentSong>(context).song.name.length > 7 ? ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 100, maxHeight: 20),
-          child: Marquee(
-            text: Provider.of<CurrentSong>(context).song.name,
-            pauseAfterRound: Duration(milliseconds: 500 ),
-            blankSpace: 20.0,
-            accelerationDuration: Duration(seconds: 1),
-            accelerationCurve: Curves.linear,
-            decelerationDuration: Duration(milliseconds: 500),
-            decelerationCurve: Curves.easeOut,
-          ),
-        ) : new Text(
-              Provider.of<CurrentSong>(context).song.name,
-              softWrap: false,
-            ),
+        title: Provider.of<CurrentSong>(context).song.name.length > 7
+            ? ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 100, maxHeight: 20),
+                child: Marquee(
+                  text: Provider.of<CurrentSong>(context).song.name,
+                  pauseAfterRound: Duration(milliseconds: 500),
+                  blankSpace: 20.0,
+                  accelerationDuration: Duration(seconds: 1),
+                  accelerationCurve: Curves.linear,
+                  decelerationDuration: Duration(milliseconds: 500),
+                  decelerationCurve: Curves.easeOut,
+                ),
+              )
+            : new Text(
+                Provider.of<CurrentSong>(context).song.name,
+                softWrap: false,
+              ),
         subtitle: Column(
           children: [
             new Text(

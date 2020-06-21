@@ -31,7 +31,6 @@ import 'model/currentSong.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize(debug: true);
-
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (_) => CurrentSong(null)),
     ChangeNotifierProvider(create: (_) => CurrentDownLoad()),
@@ -260,9 +259,18 @@ class _MyHomePageState extends State<MyHomePage> {
           .map((e) => Container(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: ListTile(
-                    leading: e.album.picUrl != null
-                        ? new CachedNetworkImage(imageUrl: e.album.picUrl)
-                        : new Image.asset('assets/notFound.jpeg'),
+                    leading: Container(
+                      width: 60,
+                      height: 60,
+                      child: e.album.picUrl != null
+                          ? new CachedNetworkImage(
+                              imageUrl: e.album.picUrl,
+                              errorWidget: (context, url, error) =>
+                                  new Image.asset('assets/music1.jpg',
+                                      fit: BoxFit.cover))
+                          : new Image.asset('assets/music1.jpg',
+                              fit: BoxFit.cover),
+                    ),
                     title: new Text(
                       e.name,
                       softWrap: false,
@@ -329,7 +337,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 gradientColors: [Color(0xff000000), Color(0xff000000)],
                 onPressed: _openDownLoadPage,
               ),
-              SizedBox(height: 20,),
+              SizedBox(
+                height: 20,
+              ),
               NiceButton(
                 radius: 40,
                 width: 200,

@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:music/class/song.dart';
 import 'package:music/database/database.dart';
 import 'package:music/page/downloadPage.dart';
+import 'package:music/page/playMusicListPage.dart';
 import 'package:music/plugin/download.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -318,6 +319,16 @@ class _MyHomePageState extends State<MyHomePage> {
     })).then((value) => {_innerDrawerKey.currentState.close()});
   }
 
+  _openPlayListPage() {
+    //打开B路由
+    Navigator.push(context, PageRouteBuilder(pageBuilder: (BuildContext context,
+        Animation animation, Animation secondaryAnimation) {
+      return new FadeTransition(
+        opacity: animation,
+        child: PlayMusicListPage(),
+      );
+    })).then((value) => {_innerDrawerKey.currentState.close()});
+  }
   Widget build(BuildContext context) {
     return InnerDrawer(
       key: _innerDrawerKey,
@@ -345,10 +356,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 width: 200,
                 elevation: 0.0,
                 padding: const EdgeInsets.all(15),
-                text: "心动列表",
+                text: "我的歌单",
                 icon: Icons.music_note,
                 gradientColors: [Color(0xff000000), Color(0xff000000)],
-                onPressed: _openDownLoadPage,
+                onPressed: _openPlayListPage,
               )
             ],
           ),

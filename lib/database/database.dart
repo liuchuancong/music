@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'dart:io';
 
+import 'package:android_path_provider/android_path_provider.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
-
 import 'package:sqflite/sqflite.dart';
 
 // 注册时模拟表
@@ -21,8 +20,14 @@ class DataBaseMusicProvider {
 
   initDB() async {
     /// On Android, this returns the AppData directory.
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "songs.db");
+    String musicPath = await AndroidPathProvider.musicPath;
+    String _localPath = musicPath + Platform.pathSeparator + 'DataBase';
+    final savedDir = Directory(_localPath);
+    bool hasExisted = await savedDir.exists();
+    if (!hasExisted) {
+      savedDir.create();
+    }
+    String path = join(savedDir.path, "songs.db");
     return await openDatabase(
       path,
       version: 1,

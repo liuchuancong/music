@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:android_path_provider/android_path_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -8,7 +9,6 @@ import 'package:music/class/song.dart';
 import 'package:music/database/database.dart';
 import 'package:music/json_convert/downLoadInfo.dart';
 import 'package:music/json_convert/songs.dart';
-import 'package:path_provider/path_provider.dart';
 
 class DownLoadInstance {
   // 单例公开访问点
@@ -72,10 +72,9 @@ class DownLoadInstance {
       showCenterShortToast();
     }
   }
-
   Future<Null> prepare() async {
-    String path = await _findLocalPath();
-    _localPath = path + Platform.pathSeparator + 'Download';
+    String musicPath = await AndroidPathProvider.musicPath;
+    _localPath = musicPath + Platform.pathSeparator + 'Downloads';
     final savedDir = Directory(_localPath);
     bool hasExisted = await savedDir.exists();
     if (!hasExisted) {
@@ -89,13 +88,6 @@ class DownLoadInstance {
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.CENTER,
         timeInSecForIosWeb: 1);
-  }
-
-  Future<String> _findLocalPath() async {
-    final directory = Platform.isAndroid
-        ? await getExternalStorageDirectory()
-        : await getApplicationDocumentsDirectory();
-    return directory.path;
   }
 
   Future<List<DownloadTask>> loadTasks() async {

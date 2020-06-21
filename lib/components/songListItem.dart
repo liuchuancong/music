@@ -25,15 +25,14 @@ class SongListItem extends StatelessWidget {
                   child: song.album.picUrl != null
                       ? new CachedNetworkImage(
                           imageUrl: song.album.picUrl,
-                           progressIndicatorBuilder:
-                                  (context, url, downloadProgress) =>
-                                      CircularProgressIndicator(
-                                          value: downloadProgress.progress),
-                              errorWidget: (context, url, error) =>
-                                  Icon(Icons.error),
-                          
+                          progressIndicatorBuilder:
+                              (context, url, downloadProgress) =>
+                                  CircularProgressIndicator(
+                                      value: downloadProgress.progress),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.error),
                         )
-                      : new Image.asset('assets/music2.jpg',fit: BoxFit.cover),
+                      : new Image.asset('assets/music2.jpg', fit: BoxFit.cover),
                 ),
                 title: new Text(
                   song.name,
@@ -92,12 +91,12 @@ class SongListTile extends StatelessWidget {
                   child: song.album.picUrl != null
                       ? new CachedNetworkImage(
                           imageUrl: song.album.picUrl,
-                           progressIndicatorBuilder:
-                                  (context, url, downloadProgress) =>
-                                      CircularProgressIndicator(
-                                          value: downloadProgress.progress),
-                              errorWidget: (context, url, error) =>
-                                  Icon(Icons.error),
+                          progressIndicatorBuilder:
+                              (context, url, downloadProgress) =>
+                                  CircularProgressIndicator(
+                                      value: downloadProgress.progress),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.error),
                         )
                       : new Image.asset('assets/music1.jpeg'),
                 ),
@@ -130,7 +129,9 @@ class SongListTile extends StatelessWidget {
 class SimpleListTile extends StatelessWidget {
   final String title;
   final Function onTap;
-  const SimpleListTile({Key key, this.title, this.onTap}) : super(key: key);
+  final Widget leading;
+  const SimpleListTile({Key key, this.title, this.onTap, this.leading})
+      : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -140,6 +141,7 @@ class SimpleListTile extends StatelessWidget {
             title,
             softWrap: false,
           ),
+          leading: leading == null ? null : leading,
           onTap: onTap,
         ),
       ],

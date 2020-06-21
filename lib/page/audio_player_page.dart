@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:marquee/marquee.dart';
+import 'package:music/lyric/lyric.dart';
 import 'package:music/model/currentSong.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:provider/provider.dart';
 import '../plugin/duration.dart';
 import '../json_convert/songs.dart';
+import 'dart:ui' as ui;
 
 class AudioPlayerPage extends StatefulWidget {
   final SongList currentPlay;
@@ -46,14 +52,16 @@ class __PageState extends State<_Page> {
   StreamSubscription currentPosition, musicInfo;
   String totalDuration = '0.00';
   String currentDuration = '0.00';
-  double totalSeconds = 0.0;
+  double totalSeconds = 238.0;
   double currentSeconds = 0.0;
   int playIndex = 0;
+  bool _showLyric = false;
+  LyricContent lyricContent;
   @override
   void initState() {
     onReadyToPlay =
         AudioInstance().assetsAudioPlayer.onReadyToPlay.listen((event) {
-      if (event.duration != null) {
+      if (event != null && event.duration != null) {
         setState(() {
           totalDuration = event.duration.mmSSFormat;
           totalSeconds = event.duration.inSeconds.toDouble();
@@ -76,10 +84,11 @@ class __PageState extends State<_Page> {
         if (playIndex != event.current.index) {
           playIndex = event.current.index;
           context.read<CurrentSong>().setSong(
-              context.read<CurrentSong>().tempplayList[event.current.index]);
+              context.read<CurrentSong>().tempPlayList[event.current.index]);
         }
       }
     });
+    _getSonglyric();
     super.initState();
   }
 
@@ -89,6 +98,108 @@ class __PageState extends State<_Page> {
     currentPosition.cancel();
     musicInfo.cancel();
     super.dispose();
+  }
+
+  void _getSonglyric() async {
+    lyricContent = null;
+    try {
+      Response response = await Dio().get("http://api.migu.jsososo.com/lyric",
+          queryParameters: {'cid': context.read<CurrentSong>().song.cid});
+      Map songsMap = json.decode(response.toString());
+      if (songsMap['result'] == 100) {
+        lyricContent = LyricContent.from(songsMap['data']);
+        setState(() {});
+      } else {
+        print('error');
+      }
+    } catch (e) {
+      print('error');
+    }
+  }
+
+  Widget _buildLyric(BuildContext context) {
+    TextStyle style = Theme.of(context).textTheme.bodyText2.copyWith(
+        height: 2, fontSize: 16, color: Colors.black.withOpacity(0.5));
+    if (lyricContent != null) {
+      return LayoutBuilder(builder: (context, constraints) {
+        final normalStyle = style.copyWith(color: style.color.withOpacity(0.9));
+        //歌词顶部与尾部半透明显示
+        return ShaderMask(
+          shaderCallback: (rect) {
+            return ui.Gradient.linear(Offset(rect.width / 2, 0),
+                Offset(rect.width / 2, constraints.maxHeight), [
+              const Color(0x00FFFFFF),
+              style.color,
+              style.color,
+              const Color(0x00FFFFFF),
+            ], [
+              0.0,
+              0.15,
+              0.85,
+              1
+            ]);
+          },
+          child: StreamBuilder(
+              stream: AudioInstance().assetsAudioPlayer.isPlaying,
+              builder: (context, snapshot) {
+                bool isPlaying = snapshot.data;
+                if (snapshot.data == null) {
+                  isPlaying = false;
+                }
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Lyric(
+                    id: context.watch<CurrentSong>().song.id,
+                    lyric: lyricContent,
+                    lyricLineStyle: normalStyle,
+                    highlight: style.color,
+                    position: currentSeconds.floor() * 1000,
+                    onTap: _setLyricState,
+                    size: Size(
+                        constraints.maxWidth,
+                        constraints.maxHeight == double.infinity
+                            ? 0
+                            : constraints.maxHeight),
+                    playing: isPlaying,
+                  ),
+                );
+              }),
+        );
+      });
+    } else {
+      return Container(
+        child: Center(
+          child: Text('暂无歌词', style: style),
+        ),
+      );
+    }
+  }
+
+  Widget _buildCenterSection(context) {
+    return Expanded(
+        child: AnimatedCrossFade(
+            crossFadeState: _showLyric
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            layoutBuilder: (Widget topChild, Key topChildKey,
+                Widget bottomChild, Key bottomChildKey) {
+              return Stack(
+                overflow: Overflow.visible,
+                children: <Widget>[
+                  Center(
+                    key: bottomChildKey,
+                    child: bottomChild,
+                  ),
+                  Center(
+                    key: topChildKey,
+                    child: topChild,
+                  ),
+                ],
+              );
+            },
+            firstChild: _buildImage(context),
+            secondChild: _buildLyric(context),
+            duration: Duration(milliseconds: 300)));
   }
 
   @override
@@ -101,13 +212,14 @@ class __PageState extends State<_Page> {
               SizedBox(height: 14),
               _buildTopBar(context),
               SizedBox(height: 80),
-              _buildImage(context),
-              SizedBox(height: 30),
+              _buildCenterSection(context),
+              SizedBox(height: 10),
               _buildTitle(context),
-              SizedBox(height: 30),
+              SizedBox(height: 10),
               _buildSeekBar(context),
               SizedBox(height: 30),
               _buildControlsBar(context),
+              SizedBox(height: 30),
             ],
           ),
         ),
@@ -171,13 +283,19 @@ class __PageState extends State<_Page> {
       ),
       child: Hero(
         tag: Provider.of<CurrentSong>(context).song.id,
-        child: Container(
-            height: 200,
-            width: 200,
-            child: Image.network(
-              Provider.of<CurrentSong>(context).song.album.picUrl,
-              fit: BoxFit.cover,
-            )),
+        child: GestureDetector(
+          onTap: _setLyricState,
+          child: Container(
+              height: 200,
+              width: 200,
+              child:  Provider.of<CurrentSong>(context).song.album.picUrl != null
+              ? new CachedNetworkImage(
+                  imageUrl: Provider.of<CurrentSong>(context).song.album.picUrl,
+                  fit:BoxFit.cover
+                )
+              : new Image.asset('assets/notFound.jpeg'),
+        ),
+        ),
       ),
     );
   }
@@ -186,14 +304,31 @@ class __PageState extends State<_Page> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Text(Provider.of<CurrentSong>(context).song.name,
-            style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 34,
-                color: NeumorphicTheme.defaultTextColor(context))),
-        const SizedBox(
-          height: 4,
-        ),
+        Provider.of<CurrentSong>(context).song.name.length > 20
+            ? ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.7,
+                    maxHeight: 50),
+                child: Marquee(
+                  text: Provider.of<CurrentSong>(context).song.name,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      color: NeumorphicTheme.defaultTextColor(context)),
+                  pauseAfterRound: Duration(seconds: 3),
+                  blankSpace: 100.0,
+                  accelerationDuration: Duration(seconds: 3),
+                  accelerationCurve: Curves.linear,
+                  decelerationDuration: Duration(seconds: 3),
+                  decelerationCurve: Curves.linear,
+                ),
+              )
+            : Text(Provider.of<CurrentSong>(context).song.name,
+                softWrap: false,
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    color: NeumorphicTheme.defaultTextColor(context))),
         Text(Provider.of<CurrentSong>(context).song.artists[0].name,
             style: TextStyle(
                 fontWeight: FontWeight.w400,
@@ -258,10 +393,11 @@ class __PageState extends State<_Page> {
           onPressed: () {
             AudioInstance().prev().then((value) => {
                   context.read<CurrentSong>().setSong(
-                      context.read<CurrentSong>().playList[AudioInstance()
+                      context.read<CurrentSong>().tempPlayList[AudioInstance()
                           .assetsAudioPlayer
                           .readingPlaylist
-                          .currentIndex])
+                          .currentIndex]),
+                  _getSonglyric()
                 });
           },
           style: NeumorphicStyle(
@@ -303,10 +439,11 @@ class __PageState extends State<_Page> {
           onPressed: () {
             AudioInstance().next().then((value) => {
                   context.read<CurrentSong>().setSong(
-                      context.read<CurrentSong>().playList[AudioInstance()
+                      context.read<CurrentSong>().tempPlayList[AudioInstance()
                           .assetsAudioPlayer
                           .readingPlaylist
-                          .currentIndex])
+                          .currentIndex]),
+                  _getSonglyric()
                 });
           },
           style: NeumorphicStyle(
@@ -320,6 +457,12 @@ class __PageState extends State<_Page> {
         ),
       ],
     );
+  }
+
+  void _setLyricState() {
+    setState(() {
+      _showLyric = !_showLyric;
+    });
   }
 
   Color _iconsColor() {

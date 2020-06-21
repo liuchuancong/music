@@ -1,35 +1,34 @@
 import 'dart:async';
 
 import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:marquee/marquee.dart';
 import 'package:music/model/currentSong.dart';
 import 'package:music/page/audio_player_page.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:provider/provider.dart';
 import '../plugin/duration.dart';
-import '../json_convert/songs.dart';
 
 class MyPageWithAudio extends StatefulWidget {
-  final SongList currentPlay;
-
-  const MyPageWithAudio({Key key, this.currentPlay}) : super(key: key);
+  const MyPageWithAudio({Key key}) : super(key: key);
   @override
   _MyPageWithAudioState createState() => _MyPageWithAudioState();
 }
 
-class _MyPageWithAudioState extends State<MyPageWithAudio> {
+class _MyPageWithAudioState extends State<MyPageWithAudio>{
   String _currentPosition = "";
   StreamSubscription onReadyToPlay;
   StreamSubscription currentPosition;
   StreamSubscription musicInfo;
-  String totalDuration;
+  String totalDuration = '00:00';
   int playIndex = 0;
   @override
   void initState() {
     onReadyToPlay =
         AudioInstance().assetsAudioPlayer.onReadyToPlay.listen((event) {
-      if (event.duration != null) {
+      if (event != null && event.duration != null) {
         setState(() {
           _currentPosition =
               "${Duration().mmSSFormat} / ${event.duration.mmSSFormat}";
@@ -53,7 +52,7 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
         if (playIndex != event.current.index) {
           playIndex = event.current.index;
           context.read<CurrentSong>().setSong(
-              context.read<CurrentSong>().tempplayList[event.current.index]);
+              context.read<CurrentSong>().tempPlayList[event.current.index]);
         }
       }
     });
@@ -77,14 +76,26 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
         leading: Hero(
           tag: Provider.of<CurrentSong>(context).song.id,
           child: Provider.of<CurrentSong>(context).song.album.picUrl != null
-              ? new Image.network(
-                  Provider.of<CurrentSong>(context).song.album.picUrl)
+              ? new CachedNetworkImage(
+                  imageUrl: Provider.of<CurrentSong>(context).song.album.picUrl,
+                )
               : new Image.asset('assets/notFound.jpeg'),
         ),
-        title: new Text(
-          Provider.of<CurrentSong>(context).song.name,
-          softWrap: false,
-        ),
+        title: Provider.of<CurrentSong>(context).song.name.length > 7 ? ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 100, maxHeight: 20),
+          child: Marquee(
+            text: Provider.of<CurrentSong>(context).song.name,
+            pauseAfterRound: Duration(milliseconds: 500 ),
+            blankSpace: 20.0,
+            accelerationDuration: Duration(seconds: 1),
+            accelerationCurve: Curves.linear,
+            decelerationDuration: Duration(milliseconds: 500),
+            decelerationCurve: Curves.easeOut,
+          ),
+        ) : new Text(
+              Provider.of<CurrentSong>(context).song.name,
+              softWrap: false,
+            ),
         subtitle: Column(
           children: [
             new Text(
@@ -104,17 +115,7 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
           children: <Widget>[
             NeumorphicButton(
               onPressed: () {
-                AudioInstance().prev().then((value) => {
-                      print(AudioInstance()
-                          .assetsAudioPlayer
-                          .readingPlaylist
-                          .currentIndex),
-                      context.read<CurrentSong>().setSong(
-                          context.read<CurrentSong>().playList[AudioInstance()
-                              .assetsAudioPlayer
-                              .readingPlaylist
-                              .currentIndex])
-                    });
+                AudioInstance().prev();
               },
               style: NeumorphicStyle(
                 shape: NeumorphicShape.flat,
@@ -138,7 +139,7 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
                   stream: AudioInstance().assetsAudioPlayer.isPlaying,
                   builder: (context, snapshot) {
                     bool isPlaying = snapshot.data;
-                    if (snapshot.data == null) {
+                    if (snapshot == null || snapshot.data == null) {
                       isPlaying = false;
                     }
                     return Icon(
@@ -150,13 +151,7 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
             ),
             NeumorphicButton(
               onPressed: () {
-                AudioInstance().next().then((value) => {
-                      context.read<CurrentSong>().setSong(
-                          context.read<CurrentSong>().playList[AudioInstance()
-                              .assetsAudioPlayer
-                              .readingPlaylist
-                              .currentIndex])
-                    });
+                AudioInstance().next();
               },
               style: NeumorphicStyle(
                 shape: NeumorphicShape.flat,

@@ -1,12 +1,23 @@
 import 'dart:convert';
+import 'dart:isolate';
+import 'dart:ui';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:backdrop/backdrop.dart';
 import 'package:backdrop/scaffold.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:music/class/song.dart';
+import 'package:music/database/database.dart';
+import 'package:music/page/downloadPage.dart';
+import 'package:music/plugin/download.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_inner_drawer/inner_drawer.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:music/components/audioControl.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'common/bottomSheet.dart';
+import 'common/niceButton.dart';
 import 'common/textColor.dart';
 import 'components/songListItem.dart';
 import 'components/textField.dart';
@@ -14,11 +25,18 @@ import 'package:dio/dio.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'json_convert/songs.dart';
 import 'package:provider/provider.dart';
+import 'model/currentDownLoad.dart';
 import 'model/currentSong.dart';
 
-void main() => runApp(MultiProvider(providers: [
-      ChangeNotifierProvider(create: (_) => CurrentSong(null)),
-    ], child: MyApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FlutterDownloader.initialize(debug: true);
+
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => CurrentSong(null)),
+    ChangeNotifierProvider(create: (_) => CurrentDownLoad()),
+  ], child: MyApp()));
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -62,16 +80,81 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Widget> songsList = [];
   SongList currentPlay;
   List<SongList> playList = [];
+  ReceivePort _port = ReceivePort();
   @override
   void initState() {
     requestPermission();
+    DownLoadInstance().prepare();
+    _portListen();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
+    super.dispose();
+  }
+
+  _portListen() {
+    IsolateNameServer.registerPortWithName(
+        _port.sendPort, 'downloader_send_port');
+    FlutterDownloader.registerCallback(downloadCallback);
+    _port.listen((dynamic data) {
+      String id = data[0];
+      DownloadTaskStatus status = data[1];
+      int progress = data[2];
+      context.read<CurrentDownLoad>().setDownLoadAbleItem(
+          new DownLoadAbleItem(id: id, progress: progress, status: status));
+    });
+  }
+
+  static void downloadCallback(
+      String id, DownloadTaskStatus status, int progress) {
+    final SendPort send =
+        IsolateNameServer.lookupPortByName('downloader_send_port');
+    send.send([id, status, progress]);
+  }
+
+  downLoad(SongList song) async {
+    Navigator.pop(context);
+    AwesomeDialog(
+      context: context,
+      animType: AnimType.SCALE,
+      dialogType: DialogType.NO_HEADER,
+      body: Container(
+        child: Column(
+          children: <Widget>[
+            SongListTile(song: song),
+            SimpleListTile(
+              title: '标准品质_128Kbps',
+              onTap: () {
+                Navigator.pop(context);
+                DownLoadInstance().getSongInfo(song, SongType.normal);
+              },
+            ),
+            SimpleListTile(
+              title: 'HQ高品质_320Kbps',
+              onTap: () {
+                Navigator.pop(context);
+                DownLoadInstance().getSongInfo(song, SongType.high);
+              },
+            ),
+            SimpleListTile(
+              title: 'SQ无损品质_flac',
+              onTap: () {
+                Navigator.pop(context);
+                DownLoadInstance().getSongInfo(song, SongType.undamaged);
+              },
+            ),
+          ],
+        ),
+      ),
+    )..show();
   }
 
   // 申请权限
   Future<void> requestPermission() async {
     var status = await Permission.storage.status;
-
     if (status.isUndetermined) {
       await Permission.storage.request();
     }
@@ -95,11 +178,75 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _payMusic(SongList song) {
     context.read<CurrentSong>().setSong(song);
+    context.read<CurrentSong>().settempPlayList([song]);
     AudioInstance().initAudio(song);
+  }
+
+  void _payMusicBeNext(SongList song) {
+    if (context.read<CurrentSong>().tempPlayList.length == 0) {
+      List<SongList> _tempPlayList = [];
+      _tempPlayList.add(song);
+      AudioInstance().initAudioList(_tempPlayList).then((value) => {
+            context.read<CurrentSong>().settempPlayList(_tempPlayList),
+            context.read<CurrentSong>().setSong(song)
+          });
+    } else {
+      int currentIndex = context
+          .read<CurrentSong>()
+          .tempPlayList
+          .indexOf(context.read<CurrentSong>().song);
+      int songInListIndex =
+          context.read<CurrentSong>().tempPlayList.indexOf(song);
+      if (currentIndex != -1 && currentIndex == songInListIndex) {
+        Navigator.pop(context);
+        return;
+      }
+      if (songInListIndex != -1) {
+        context.read<CurrentSong>().removeAtIndex(songInListIndex);
+        AudioInstance().reMoveAtIndex(songInListIndex);
+      }
+      if (currentIndex != -1) {
+        context.read<CurrentSong>().insertTempPlatList(currentIndex + 1, song);
+        AudioInstance().insetAtIndex(currentIndex + 1, song);
+      }
+    }
+    Navigator.pop(context);
   }
 
   void _onLoading() async {
     this.getSongList();
+  }
+
+  Future _showBottomSheet(SongList song) async {
+    List<MusicDBInfoMation> list =
+        await DataBaseMusicProvider.db.queryMusicWithMusicId(song.id);
+    await BottomSheetManage().showBottomSheet(
+      song,
+      context,
+      [
+        SongListTile(song: song),
+        SimpleListTile(
+          title: '下一首播放',
+          onTap: () {
+            _payMusicBeNext(song);
+          },
+        ),
+        SimpleListTile(
+          title: '添加到我喜欢的',
+          onTap: () {},
+        ),
+        SimpleListTile(
+          title: list.length > 0 ? '已下载' : '下载',
+          onTap: list.length > 0
+              ? () {
+                  Navigator.pop(context);
+                }
+              : () {
+                  downLoad(song);
+                },
+        ),
+      ],
+    );
   }
 
   getSongsDetail(SongsData songsData) {
@@ -113,15 +260,22 @@ class _MyHomePageState extends State<MyHomePage> {
           .map((e) => Container(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: ListTile(
-                  leading: e.album.picUrl != null
-                      ? new Image.network(e.album.picUrl)
-                      : new Image.asset('assets/notFound.jpeg'),
-                  title: new Text(e.name),
-                  subtitle: new Text(e.artists[0].name),
-                  onTap: () {
-                    _payMusic(e);
-                  },
-                ),
+                    leading: e.album.picUrl != null
+                        ? new CachedNetworkImage(imageUrl: e.album.picUrl)
+                        : new Image.asset('assets/notFound.jpeg'),
+                    title: new Text(
+                      e.name,
+                      softWrap: false,
+                    ),
+                    subtitle: new Text(e.artists[0].name),
+                    trailing: IconButton(
+                        icon: new Icon(Icons.more_vert),
+                        onPressed: () {
+                          _showBottomSheet(e);
+                        }),
+                    onTap: () {
+                      _payMusic(e);
+                    }),
               ))
           .toList();
       setState(() {
@@ -139,23 +293,52 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     AudioInstance().initAudioList(playList).then((value) => {
-          context.read<CurrentSong>().setTempplayList(playList),
+          context.read<CurrentSong>().settempPlayList(playList),
           context.read<CurrentSong>().setSong(playList[
               AudioInstance().assetsAudioPlayer.readingPlaylist.currentIndex])
         });
   }
 
+  _openDownLoadPage() {
+    //打开B路由
+    Navigator.push(context, PageRouteBuilder(pageBuilder: (BuildContext context,
+        Animation animation, Animation secondaryAnimation) {
+      return new FadeTransition(
+        opacity: animation,
+        child: DownLoadPage(),
+      );
+    })).then((value) => {_innerDrawerKey.currentState.close()});
+  }
+
   Widget build(BuildContext context) {
     return InnerDrawer(
       key: _innerDrawerKey,
-      leftChild: Material(
-        child: Container(
+      leftChild: Scaffold(
+        body: Container(
           decoration: BoxDecoration(color: Color(0xFFDDE6E8)),
           child: ListView(
             children: <Widget>[
               SizedBox(height: MediaQuery.of(context).size.height * 0.1),
-              ListTile(
-                title: Text('我喜欢的'),
+              NiceButton(
+                radius: 40,
+                width: 200,
+                elevation: 0.0,
+                padding: const EdgeInsets.all(15),
+                text: "下载管理",
+                icon: Icons.file_download,
+                gradientColors: [Color(0xff000000), Color(0xff000000)],
+                onPressed: _openDownLoadPage,
+              ),
+              SizedBox(height: 20,),
+              NiceButton(
+                radius: 40,
+                width: 200,
+                elevation: 0.0,
+                padding: const EdgeInsets.all(15),
+                text: "心动列表",
+                icon: Icons.music_note,
+                gradientColors: [Color(0xff000000), Color(0xff000000)],
+                onPressed: _openDownLoadPage,
               )
             ],
           ),
@@ -216,18 +399,23 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             ],
           )),
-          backLayer: context.watch<CurrentSong>().tempplayList.length > 0
+          backLayer: context.watch<CurrentSong>().tempPlayList.length > 0
               ? BackdropNavigationBackLayer(
                   onTap: (int index) {
-                    context.read<CurrentSong>().setSong(
-                        context.read<CurrentSong>().tempplayList[index]);
-                    AudioInstance().playlistPlayAtIndex(index);
+                    AudioInstance().playlistPlayAtIndex(index).then((value) => {
+                          context.read<CurrentSong>().setSong(
+                                context.read<CurrentSong>().tempPlayList[index],
+                              )
+                        });
                   },
                   items: context
                       .watch<CurrentSong>()
-                      .tempplayList
+                      .tempPlayList
                       .map((song) => SongListItem(
                             song: song,
+                            onPressed: () {
+                              _showBottomSheet(song);
+                            },
                           ))
                       .toList(),
                 )
@@ -312,8 +500,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               context.watch<CurrentSong>().song != null
-                  ? MyPageWithAudio(
-                      currentPlay: context.watch<CurrentSong>().song)
+                  ? MyPageWithAudio()
                   : Container()
             ],
           )),

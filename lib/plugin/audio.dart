@@ -1,6 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:music/database/database.dart';
+import 'package:music/json_convert/downLoadInfo.dart';
 import 'package:music/json_convert/songs.dart';
+import 'package:music/json_convert/songs.dart' as songs;
 
 class AudioInstance {
   // 单例公开访问点
@@ -46,6 +54,59 @@ class AudioInstance {
     }
   }
 
+  Future<SongList> _getFileInfo(DownloadTask song) async {
+    SongList musicInfo;
+    List<MusicDBInfoMation> list =
+        await DataBaseMusicProvider.db.queryMusic(song.taskId);
+    String misicId = list[0].musicId;
+    Response response = await Dio().get("http://api.migu.jsososo.com/song",
+        queryParameters: {'id': misicId});
+    Map songsMap = json.decode(response.toString());
+    DownLoadFileInfo songInfo = new DownLoadFileInfo.fromJson(songsMap);
+    if (songInfo.result == 100) {
+      var artists = new List<songs.Artists>();
+      artists.add(new songs.Artists(
+          id: songInfo.data.artists[0].id,
+          name: songInfo.data.artists[0].name));
+      musicInfo = songs.SongList(
+        name: songInfo.data.name,
+        id: songInfo.data.id,
+        cid: songInfo.data.cid,
+        mvId: '',
+        album: songs.Album(
+          picUrl: songInfo.data.album.picUrl,
+          id: songInfo.data.album.id,
+          name: songInfo.data.album.name,
+        ),
+        artists: artists,
+      );
+    }
+    return musicInfo;
+  }
+
+  Future<void> initFileAudio(String url, song) async {
+    if (isPlay) {
+      stop();
+    }
+
+    try {
+      _audio = Audio.file(
+        url,
+        metas: Metas(
+          title: song.name,
+          artist: song.artists[0].name,
+          album: song.album.name,
+          image:
+              MetasImage.network(song.album.picUrl), //can be MetasImage.network
+        ),
+      );
+      await assetsAudioPlayer.open(_audio, showNotification: true);
+      updateMetas(song);
+    } catch (t) {
+      //mp3 unreachable
+    }
+  }
+
   void showCenterShortToast() {
     Fluttertoast.showToast(
         msg: "请先添加歌曲",
@@ -75,11 +136,54 @@ class AudioInstance {
       if (isPlay) {
         stop();
       }
-      assetsAudioPlayer.open(Playlist(audios: playList),
-          loopMode: LoopMode.playlist, showNotification: true);
+      assetsAudioPlayer.open(
+        Playlist(audios: playList),
+        loopMode: LoopMode.playlist,
+        showNotification: true,
+      );
     } catch (t) {
       //mp3 unreachable
     }
+  }
+
+  Future<List<SongList>> initAudioFileList(List<DownloadTask> songsList) async {
+    List<SongList> musicInfoList = [];
+    if (songsList.length == 0) {
+      showCenterShortToast();
+      return musicInfoList;
+    }
+
+    try {
+      List<Audio> playList = [];
+      for (var i = 0; i < songsList.length; i++) {
+        DownloadTask song = songsList[i];
+        SongList musicInfo = await _getFileInfo(song);
+        musicInfoList.add(musicInfo);
+        String path = song.savedDir + Platform.pathSeparator + song.filename;
+        playList.add(Audio.file(
+          path,
+          metas: Metas(
+            title: musicInfo.name,
+            artist: musicInfo.artists[0].name,
+            album: musicInfo.album.name,
+            image: MetasImage.network(
+              musicInfo.album.picUrl,
+            ), //can be MetasImage.network
+          ),
+        ));
+      }
+      if (isPlay) {
+        stop();
+      }
+      assetsAudioPlayer.open(
+        Playlist(audios: playList),
+        loopMode: LoopMode.playlist,
+        showNotification: true,
+      );
+    } catch (t) {
+      //mp3 unreachable
+    }
+    return musicInfoList;
   }
 
   updateMetas(SongList song) {
@@ -96,9 +200,43 @@ class AudioInstance {
   Future<void> seekBy(Duration by) async {
     await assetsAudioPlayer.seekBy(by);
   }
+
+  Future<void> insetAtIndex(int index, SongList song) async {
+    var audio = Audio.network(
+      song.url,
+      metas: Metas(
+        title: song.name,
+        artist: song.artists[0].name,
+        album: song.album.name,
+        image:
+            MetasImage.network(song.album.picUrl), //can be MetasImage.network
+      ),
+    );
+    AudioInstance().assetsAudioPlayer.playlist.audios.insert(index, audio);
+  }
+
+  Future<void> add(SongList song) async {
+    var audio = Audio.network(
+      song.url,
+      metas: Metas(
+        title: song.name,
+        artist: song.artists[0].name,
+        album: song.album.name,
+        image:
+            MetasImage.network(song.album.picUrl), //can be MetasImage.network
+      ),
+    );
+    AudioInstance().assetsAudioPlayer.playlist.add(audio);
+  }
+
+  Future<void> reMoveAtIndex(int index) async {
+    AudioInstance().assetsAudioPlayer.playlist.audios.removeAt(index);
+  }
+
   Future<void> playlistPlayAtIndex(int index) async {
     await assetsAudioPlayer.playlistPlayAtIndex(index);
   }
+
   Future<void> seek(Duration by) async {
     await assetsAudioPlayer.seek(by);
   }

@@ -58,14 +58,10 @@ class DataBasePlayListProvider {
     return list;
   }
 
-  Future queryMusicWithMusicId(String musicId) async {
+  Future deleteMenuWithId(int menuId) async {
     var db = await dataBase;
-    var result = await db.rawQuery(
-        "SELECT * FROM $table WHERE music_id='${musicId.toString()}'");
-    List<PlayListDBInfoMation> list = result.isNotEmpty
-        ? result.map((music) => PlayListDBInfoMation.formMap(music)).toList()
-        : [];
-    return list;
+    await db.rawQuery(
+        "DELETE FROM $table WHERE id=$menuId");
   }
 }
 

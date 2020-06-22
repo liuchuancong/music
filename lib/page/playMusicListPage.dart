@@ -175,7 +175,10 @@ class __PageState extends State<_Page> {
     _text = null;
     _getMusicMunu();
   }
-
+  _deleteMenuWithId(int id)async{
+    await DataBasePlayListProvider.db.deleteMenuWithId(id);
+    _getMusicMunu();
+  }
   _getMusicMunu() async {
     final List<PlayListDBInfoMation> _playList =
         await DataBasePlayListProvider.db.queryAll();
@@ -188,6 +191,12 @@ class __PageState extends State<_Page> {
                     width: 60,
                     height: 60,
                     child: new Image.memory(base64Decode(menu.menuCover))),
+                trailing: IconButton(
+                  icon: Icon(Icons.delete_outline),
+                  onPressed: () {
+                    _showDeleteDialog(menu);
+                  },
+                ),
                 onTap: () {},
               ),
             ))
@@ -196,6 +205,44 @@ class __PageState extends State<_Page> {
     setState(() {
       playList = tempList;
     });
+  }
+
+  Future _showDeleteDialog(PlayListDBInfoMation menu) async {
+    AwesomeDialog(
+      context: context,
+      animType: AnimType.SCALE,
+      dialogType: DialogType.NO_HEADER,
+      body: Container(
+        child: Column(
+          children: <Widget>[
+            SimpleListTile(
+              title: '确定删除该歌单吗?',
+              onTap: null,
+            ),
+            Container(
+                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              SizedBox(
+                width: 60,
+                child: FlatButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('取消')),
+              ),
+              SizedBox(
+                width: 60,
+                child: FlatButton(
+                    onPressed: () {
+                      _deleteMenuWithId(menu.id);
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('确定')),
+              ),
+            ]))
+          ],
+        ),
+      ),
+    )..show();
   }
 
   @override

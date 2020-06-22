@@ -130,7 +130,10 @@ class SimpleListTile extends StatelessWidget {
   final String title;
   final Function onTap;
   final Widget leading;
-  const SimpleListTile({Key key, this.title, this.onTap, this.leading})
+  final Widget trailing;
+
+  const SimpleListTile(
+      {Key key, this.title, this.onTap, this.leading, this.trailing})
       : super(key: key);
   @override
   Widget build(BuildContext context) {
@@ -142,6 +145,7 @@ class SimpleListTile extends StatelessWidget {
             softWrap: false,
           ),
           leading: leading == null ? null : leading,
+          trailing: trailing == null ? null : trailing,
           onTap: onTap,
         ),
       ],

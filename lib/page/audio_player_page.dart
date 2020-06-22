@@ -91,6 +91,7 @@ class __PageState extends State<_Page> with TickerProviderStateMixin {
           playIndex = event.current.index;
           context.read<CurrentSong>().setSong(
               context.read<CurrentSong>().tempPlayList[event.current.index]);
+          _getSonglyric();
         }
       }
     });
@@ -227,7 +228,7 @@ class __PageState extends State<_Page> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-        if (Platform.isAndroid) {
+    if (Platform.isAndroid) {
       SystemChrome.setEnabledSystemUIOverlays([]);
     }
     return Scaffold(

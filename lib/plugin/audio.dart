@@ -20,7 +20,7 @@ class AudioInstance {
   AssetsAudioPlayer assetsAudioPlayer;
   // 私有构造函数
   AudioInstance._internal() {
-    assetsAudioPlayer = new AssetsAudioPlayer();
+    assetsAudioPlayer = AssetsAudioPlayer.withId('flutter_assets_audio_player');
   }
 
   // 静态、同步、私有访问点

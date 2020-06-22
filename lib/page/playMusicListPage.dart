@@ -172,6 +172,7 @@ class __PageState extends State<_Page> {
     await DataBasePlayListProvider.db
         .insetDB(menuName: this.controller.text, menuCover: base64Image);
     controller.text = '';
+    _text = null;
     _getMusicMunu();
   }
 

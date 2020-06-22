@@ -1,16 +1,13 @@
 # music
 
-A new Flutter project.
+搜索歌曲并提供播放以及下载
 
-## Getting Started
+## 播放
 
-This project is a starting point for a Flutter application.
+已实现播放 快进 下一首 歌词等功能
 
-A few resources to get you started if this is your first Flutter project:
+下载地址:
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+- [Flutter Music](https://github.com/liuchuancong/music/blob/master/build/app/outputs/apk/release/app-release.apk)
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+喜欢，请star

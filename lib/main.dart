@@ -16,6 +16,7 @@ import 'package:flutter_inner_drawer/inner_drawer.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:music/components/audioControl.dart';
 import 'package:music/plugin/audio.dart';
+import 'package:music/settings/dio_setting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'common/bottomSheet.dart';
 import 'common/niceButton.dart';
@@ -28,10 +29,16 @@ import 'json_convert/songs.dart';
 import 'package:provider/provider.dart';
 import 'model/currentDownLoad.dart';
 import 'model/currentSong.dart';
-
+import 'dart:io';
+import 'package:flutter/services.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDownloader.initialize(debug: true);
+  if (Platform.isAndroid) {
+        SystemUiOverlayStyle systemUiOverlayStyle =
+        SystemUiOverlayStyle(statusBarColor: Colors.black);
+   SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
+  }
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (_) => CurrentSong(null)),
     ChangeNotifierProvider(create: (_) => CurrentDownLoad()),
@@ -92,6 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     IsolateNameServer.removePortNameMapping('downloader_send_port');
+    AudioInstance().dispose();
     super.dispose();
   }
 
@@ -162,7 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void getSongList() async {
     try {
-      Response response = await Dio().get("http://api.migu.jsososo.com/search",
+      Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/search",
           queryParameters: {'keyword': _text, 'pageNo': pageNo});
       Map songsMap = json.decode(response.toString());
       Songs songs = new Songs.fromJson(songsMap);
@@ -329,6 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     })).then((value) => {_innerDrawerKey.currentState.close()});
   }
+
   Widget build(BuildContext context) {
     return InnerDrawer(
       key: _innerDrawerKey,

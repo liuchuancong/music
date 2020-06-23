@@ -256,7 +256,6 @@ class __PageState extends State<_Page> {
           child: Column(
             children: <Widget>[
               _buildTopBar(context),
-              SizedBox(height: 10),
               Expanded(
                   child: Container(
                 decoration: new BoxDecoration(

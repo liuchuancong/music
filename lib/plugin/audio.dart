@@ -9,11 +9,13 @@ import 'package:music/database/database.dart';
 import 'package:music/json_convert/downLoadInfo.dart';
 import 'package:music/json_convert/songs.dart';
 import 'package:music/json_convert/songs.dart' as songs;
+import 'package:music/settings/dio_setting.dart';
 
 class AudioInstance {
   // 单例公开访问点
   factory AudioInstance() => _getInstance();
   bool get isPlay => assetsAudioPlayer.isPlaying.value;
+  Playlist get playList => assetsAudioPlayer.playlist; 
   // 静态私有成员，没有初始化
   static AudioInstance _instance;
   static AudioInstance get instance => _getInstance();
@@ -59,7 +61,7 @@ class AudioInstance {
     List<MusicDBInfoMation> list =
         await DataBaseMusicProvider.db.queryMusic(song.taskId);
     String misicId = list[0].musicId;
-    Response response = await Dio().get("http://api.migu.jsososo.com/song",
+    Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/song",
         queryParameters: {'id': misicId});
     Map songsMap = json.decode(response.toString());
     DownLoadFileInfo songInfo = new DownLoadFileInfo.fromJson(songsMap);
@@ -212,7 +214,7 @@ class AudioInstance {
             MetasImage.network(song.album.picUrl), //can be MetasImage.network
       ),
     );
-    AudioInstance().assetsAudioPlayer.playlist.audios.insert(index, audio);
+    assetsAudioPlayer.playlist.insert(index, audio);
   }
 
   Future<void> add(SongList song) async {
@@ -226,11 +228,12 @@ class AudioInstance {
             MetasImage.network(song.album.picUrl), //can be MetasImage.network
       ),
     );
-    AudioInstance().assetsAudioPlayer.playlist.add(audio);
+    assetsAudioPlayer.playlist.add(audio);
   }
 
   Future<void> reMoveAtIndex(int index) async {
-    AudioInstance().assetsAudioPlayer.playlist.audios.removeAt(index);
+    print(assetsAudioPlayer.playlist.audios.length);
+    assetsAudioPlayer.playlist.removeAtIndex(index);
   }
 
   Future<void> playlistPlayAtIndex(int index) async {
@@ -263,5 +266,8 @@ class AudioInstance {
 
   Future<void> prev() async {
     await assetsAudioPlayer.previous();
+  }
+  Future<void> dispose() async {
+    await assetsAudioPlayer.dispose();
   }
 }

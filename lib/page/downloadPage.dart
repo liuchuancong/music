@@ -17,6 +17,7 @@ import 'package:music/json_convert/songs.dart' as songs;
 import 'package:music/model/currentSong.dart';
 import 'package:music/plugin/audio.dart';
 import 'package:music/plugin/download.dart';
+import 'package:music/settings/dio_setting.dart';
 import 'package:provider/provider.dart';
 
 class DownLoadPage extends StatefulWidget {
@@ -167,7 +168,7 @@ class __PageState extends State<_Page> {
         await DataBaseMusicProvider.db.queryMusic(song.taskId);
     if (list.length == 0) return;
     String misicId = list[0].musicId;
-    Response response = await Dio().get("http://api.migu.jsososo.com/song",
+    Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/song",
         queryParameters: {'id': misicId});
     Map songsMap = json.decode(response.toString());
     DownLoadFileInfo songInfo = new DownLoadFileInfo.fromJson(songsMap);

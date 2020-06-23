@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+
 import 'dart:math';
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:marquee/marquee.dart';
 import 'package:music/components/blurBackground.dart';
@@ -14,6 +14,7 @@ import 'package:music/lyric/lyric.dart';
 import 'package:music/model/currentSong.dart';
 import 'package:music/page/painter.dart';
 import 'package:music/plugin/audio.dart';
+import 'package:music/settings/dio_setting.dart';
 import 'package:provider/provider.dart';
 import '../plugin/duration.dart';
 import '../json_convert/songs.dart';
@@ -118,7 +119,7 @@ class __PageState extends State<_Page> with TickerProviderStateMixin {
   void _getSonglyric() async {
     lyricContent = null;
     try {
-      Response response = await Dio().get("http://api.migu.jsososo.com/lyric",
+      Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/lyric",
           queryParameters: {'cid': context.read<CurrentSong>().song.cid});
       Map songsMap = json.decode(response.toString());
       if (songsMap['result'] == 100) {
@@ -228,9 +229,6 @@ class __PageState extends State<_Page> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isAndroid) {
-      SystemChrome.setEnabledSystemUIOverlays([]);
-    }
     return Scaffold(
       resizeToAvoidBottomInset: false,
       resizeToAvoidBottomPadding: false,

@@ -9,6 +9,7 @@ import 'package:music/class/song.dart';
 import 'package:music/database/database.dart';
 import 'package:music/json_convert/downLoadInfo.dart';
 import 'package:music/json_convert/songs.dart';
+import 'package:music/settings/dio_setting.dart';
 
 class DownLoadInstance {
   // 单例公开访问点
@@ -59,7 +60,7 @@ class DownLoadInstance {
       default:
     }
     try {
-      Response response = await Dio().get("http://api.migu.jsososo.com/song",
+      Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/song",
           queryParameters: {'id': song.id, 'type': type});
       Map songsMap = json.decode(response.toString());
       DownLoadFileInfo songInfo = new DownLoadFileInfo.fromJson(songsMap);
@@ -72,6 +73,7 @@ class DownLoadInstance {
       showCenterShortToast();
     }
   }
+
   Future<Null> prepare() async {
     String musicPath = await AndroidPathProvider.musicPath;
     _localPath = musicPath + Platform.pathSeparator + 'Downloads';
@@ -113,9 +115,11 @@ class DownLoadInstance {
   Future remove(String taskId) async {
     FlutterDownloader.remove(taskId: taskId, shouldDeleteContent: false);
   }
-    Future delete(String taskId) async {
+
+  Future delete(String taskId) async {
     FlutterDownloader.remove(taskId: taskId, shouldDeleteContent: true);
   }
+
   Future cancelAll(String taskId) async {
     FlutterDownloader.cancelAll();
   }

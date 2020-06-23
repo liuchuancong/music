@@ -7,6 +7,7 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:music/class/song.dart';
 import 'package:music/database/database.dart';
+import 'package:music/database/downloadMusicDatabase.dart';
 import 'package:music/json_convert/downLoadInfo.dart';
 import 'package:music/json_convert/songs.dart';
 import 'package:music/settings/dio_setting.dart';
@@ -39,6 +40,12 @@ class DownLoadInstance {
       openFileFromNotification:
           false, // click on notification to open downloaded file (for Android)
     );
+    final tempSong = jsonEncode(song);
+    await DataBaseDownLoadListProvider.db.insetDB(
+        taskId: taskId,
+        song: tempSong.toString(),
+        songId: song.id,
+        songFileName: fileName);
     await DataBaseMusicProvider.db.insetDB(taskId: taskId, musicId: song.id);
   }
 
@@ -60,7 +67,8 @@ class DownLoadInstance {
       default:
     }
     try {
-      Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/song",
+      Response response = await Dio(dioOptions).get(
+          "http://api.migu.jsososo.com/song",
           queryParameters: {'id': song.id, 'type': type});
       Map songsMap = json.decode(response.toString());
       DownLoadFileInfo songInfo = new DownLoadFileInfo.fromJson(songsMap);

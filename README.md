@@ -20,10 +20,10 @@
 
 ### 截图
 
-![截图1](https://github.com/liuchuancong/music/blob/master/image/1.jpg)
-![截图2](https://github.com/liuchuancong/music/blob/master/image/2.jpg)
-![截图3](https://github.com/liuchuancong/music/blob/master/image/3.jpg)
-![截图4](https://github.com/liuchuancong/music/blob/master/image/4.jpg)
-![截图5](https://github.com/liuchuancong/music/blob/master/image/5.jpg)
-![截图6](https://github.com/liuchuancong/music/blob/master/image/6.jpg)
-![截图7](https://github.com/liuchuancong/music/blob/master/image/7.jpg)
+![截图1](https://github.com/liuchuancong/music/blob/master/image/1.jpg =200x400)
+![截图2](https://github.com/liuchuancong/music/blob/master/image/2.jpg =200x400)
+![截图3](https://github.com/liuchuancong/music/blob/master/image/3.jpg =200x400)
+![截图4](https://github.com/liuchuancong/music/blob/master/image/4.jpg =200x400)
+![截图5](https://github.com/liuchuancong/music/blob/master/image/5.jpg =200x400)
+![截图6](https://github.com/liuchuancong/music/blob/master/image/6.jpg =200x400)
+![截图7](https://github.com/liuchuancong/music/blob/master/image/7.jpg =200x400)

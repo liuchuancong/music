@@ -6,8 +6,11 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:music/common/bottomSheet.dart';
 import 'package:music/components/songListItem.dart';
 import 'package:music/database/playListDataBase.dart';
+
+import 'music_menu_page.dart';
 
 class PlayMusicListPage extends StatefulWidget {
   @override
@@ -68,7 +71,14 @@ class __PageState extends State<_Page> {
           Align(
               alignment: Alignment.centerRight,
               child: GestureDetector(
-                onTap: _addMusicMenu,
+                onTap: () {
+                  _addOrEditMusicMenu(
+                      onPressed: () {
+                        _addMusicMunu();
+                        Navigator.of(context).pop();
+                      },
+                      titleName: '新建歌单');
+                },
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
@@ -88,6 +98,17 @@ class __PageState extends State<_Page> {
     );
   }
 
+  _openRoute({@required Widget page}) {
+    //打开B路由
+    Navigator.push(context, PageRouteBuilder(pageBuilder: (BuildContext context,
+        Animation animation, Animation secondaryAnimation) {
+      return new FadeTransition(
+        opacity: animation,
+        child: page,
+      );
+    }));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -95,7 +116,8 @@ class __PageState extends State<_Page> {
     _getMusicMunu();
   }
 
-  _addMusicMenu() async {
+  _addOrEditMusicMenu(
+      {@required String titleName, @required Function onPressed}) async {
     AwesomeDialog(
       context: context,
       animType: AnimType.SCALE,
@@ -108,7 +130,7 @@ class __PageState extends State<_Page> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Container(
-                child: Text('新建歌单', style: TextStyle(fontSize: 16)),
+                child: Text(titleName, style: TextStyle(fontSize: 16)),
                 padding: EdgeInsets.only(left: 10.0),
               ),
               Container(
@@ -149,12 +171,8 @@ class __PageState extends State<_Page> {
                 SizedBox(
                   width: 60,
                   child: FlatButton(
-                      onPressed: _text != null && _text.length > 0
-                          ? () {
-                              _addMusicMunu();
-                              Navigator.of(context).pop();
-                            }
-                          : null,
+                      onPressed:
+                          _text != null && _text.length > 0 ? onPressed : null,
                       child: Text('确定')),
                 ),
               ]))
@@ -175,10 +193,19 @@ class __PageState extends State<_Page> {
     _text = null;
     _getMusicMunu();
   }
-  _deleteMenuWithId(int id)async{
+
+  _deleteMenuWithId(int id) async {
     await DataBasePlayListProvider.db.deleteMenuWithId(id);
     _getMusicMunu();
   }
+
+  _updateMenuName(int menuId) async {
+    await DataBasePlayListProvider.db.updateMenuName(menuId, _text);
+    controller.text = '';
+    _text = null;
+    _getMusicMunu();
+  }
+
   _getMusicMunu() async {
     final List<PlayListDBInfoMation> _playList =
         await DataBasePlayListProvider.db.queryAll();
@@ -192,12 +219,15 @@ class __PageState extends State<_Page> {
                     height: 60,
                     child: new Image.memory(base64Decode(menu.menuCover))),
                 trailing: IconButton(
-                  icon: Icon(Icons.delete_outline),
+                  icon: Icon(Icons.more_vert),
                   onPressed: () {
-                    _showDeleteDialog(menu);
+                    // _showDeleteDialog(menu);
+                    showBottomSheetAction(menu);
                   },
                 ),
-                onTap: () {},
+                onTap: () {
+                  _openRoute(page: MusicMenuPage(id: menu.id));
+                },
               ),
             ))
         .toList();
@@ -205,6 +235,31 @@ class __PageState extends State<_Page> {
     setState(() {
       playList = tempList;
     });
+  }
+
+  Future showBottomSheetAction(PlayListDBInfoMation menu) async {
+    BottomSheetManage().showNormalBottomSheet(context, [
+      SimpleListTile(
+        title: '删除',
+        onTap: () {
+          Navigator.pop(context);
+          _showDeleteDialog(menu);
+        },
+      ),
+      SimpleListTile(
+        title: '更换歌单名称',
+        onTap: () {
+          Navigator.of(context).pop();
+          _addOrEditMusicMenu(
+            titleName: '请输入歌单名称',
+            onPressed: () {
+              _updateMenuName(menu.id);
+              Navigator.of(context).pop();
+            },
+          );
+        },
+      ),
+    ]);
   }
 
   Future _showDeleteDialog(PlayListDBInfoMation menu) async {

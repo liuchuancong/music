@@ -60,8 +60,18 @@ class DataBasePlayListProvider {
 
   Future deleteMenuWithId(int menuId) async {
     var db = await dataBase;
-    await db.rawQuery(
-        "DELETE FROM $table WHERE id=$menuId");
+    await db.rawQuery("DELETE FROM $table WHERE id=$menuId");
+  }
+  Future updateMenuName(int menuId,String menuName) async {
+    var db = await dataBase;
+    await db.rawQuery("UPDATE $table SET menu_name = '$menuName' WHERE id=$menuId");
+  }
+  Future<PlayListDBInfoMation> getMenuWithId(int menuId) async {
+    var db = await dataBase;
+    var result = await db.rawQuery("SELECT * FROM $table WHERE id=$menuId");
+    List<PlayListDBInfoMation> list =
+        result.map((music) => PlayListDBInfoMation.formMap(music)).toList();
+    return list[0];
   }
 }
 

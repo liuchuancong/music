@@ -146,9 +146,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   List<Widget> _buildTempPlayList(BuildContext ctx) {
-    print(ctx
-        .watch<CurrentSong>()
-        .tempPlayList);
     return ctx
         .watch<CurrentSong>()
         .tempPlayList

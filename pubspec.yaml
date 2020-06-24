@@ -22,7 +22,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  assets_audio_player: 2.0.5+7
+  assets_audio_player: ^2.0.6+4
   flutter_neumorphic: ^3.0.1
   flutter_colorpicker: ^0.3.4
   dio: ^3.0.9

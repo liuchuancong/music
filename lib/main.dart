@@ -37,6 +37,9 @@ void main() async {
     SystemUiOverlayStyle systemUiOverlayStyle =
         SystemUiOverlayStyle(statusBarColor: Colors.black);
     SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (_) => CurrentSong(null)),

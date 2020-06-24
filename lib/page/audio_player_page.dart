@@ -290,18 +290,7 @@ class __PageState extends State<_Page> with TickerProviderStateMixin {
                 color: Colors.white,
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              padding: const EdgeInsets.all(18.0),
-              onPressed: () {},
-              icon: Icon(
-                Icons.favorite_border,
-                color: Colors.white,
-              ),
-            ),
-          ),
+          )
         ],
       ),
     );

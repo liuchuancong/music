@@ -6,6 +6,7 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:multi_image_picker/multi_image_picker.dart';
 import 'package:music/common/bottomSheet.dart';
 import 'package:music/components/songListItem.dart';
 import 'package:music/database/playListDataBase.dart';
@@ -44,6 +45,7 @@ class __PageState extends State<_Page> {
   TextEditingController controller;
   String _text;
   List<Widget> playList = [];
+  List<Asset> images = List<Asset>();
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -259,9 +261,37 @@ class __PageState extends State<_Page> {
           );
         },
       ),
+      SimpleListTile(
+        title: '更换封面',
+        onTap: () {
+          Navigator.pop(context);
+          _loadAssets();
+        },
+      ),
     ]);
   }
+  Future<void> _loadAssets() async {
+    List<Asset> resultList = List<Asset>();
+    try {
+      resultList = await MultiImagePicker.pickImages(
+        maxImages: 2,
+        enableCamera: true,
+        selectedAssets: [],
+        materialOptions: MaterialOptions(
+          actionBarColor: "#000",
+          actionBarTitle: "Flutter Music",
+          allViewTitle: "所有图片",
+          useDetailsView: false,
+          selectCircleStrokeColor: "#000000",
+        ),
+      );
+    } on Exception catch (e) {
+        print(e.toString());
+    }
+    if (!mounted) return;
 
+  }
+  _changeMenuCoverImage(){}
   Future _showDeleteDialog(PlayListDBInfoMation menu) async {
     AwesomeDialog(
       context: context,

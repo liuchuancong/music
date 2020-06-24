@@ -8,7 +8,7 @@
 
 下载地址:
 
-![扫码体验](http://baidu.com/pic/doge.png)
+![扫码体验](https://github.com/liuchuancong/music/blob/master/image/down.png)
 
 - [蓝奏云](https://wws.lanzous.com/ix0dze0a67c)
 

@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:multi_image_picker/multi_image_picker.dart';
 import 'package:music/common/bottomSheet.dart';
@@ -219,7 +220,10 @@ class __PageState extends State<_Page> {
                 leading: Container(
                     width: 60,
                     height: 60,
-                    child: new Image.memory(base64Decode(menu.menuCover))),
+                    child: new Image.memory(
+                      base64Decode(menu.menuCover),
+                      fit: BoxFit.cover,
+                    )),
                 trailing: IconButton(
                   icon: Icon(Icons.more_vert),
                   onPressed: () {
@@ -241,6 +245,19 @@ class __PageState extends State<_Page> {
 
   Future showBottomSheetAction(PlayListDBInfoMation menu) async {
     BottomSheetManage().showNormalBottomSheet(context, [
+      Container(
+        padding: EdgeInsets.symmetric(vertical: 10),
+        child: SimpleListTile(
+            title: menu.menuName,
+            leading: Container(
+                width: 60,
+                height: 60,
+                child: new Image.memory(
+                  base64Decode(menu.menuCover),
+                  fit: BoxFit.cover,
+                )),
+            onTap: null),
+      ),
       SimpleListTile(
         title: '删除',
         onTap: () {
@@ -265,33 +282,54 @@ class __PageState extends State<_Page> {
         title: '更换封面',
         onTap: () {
           Navigator.pop(context);
-          _loadAssets();
+          _loadAssets(menu);
         },
       ),
     ]);
   }
-  Future<void> _loadAssets() async {
+
+  Future<void> _loadAssets(PlayListDBInfoMation menu) async {
     List<Asset> resultList = List<Asset>();
     try {
       resultList = await MultiImagePicker.pickImages(
-        maxImages: 2,
+        maxImages: 1,
         enableCamera: true,
         selectedAssets: [],
         materialOptions: MaterialOptions(
-          actionBarColor: "#000",
+          actionBarColor: "#000000",
           actionBarTitle: "Flutter Music",
           allViewTitle: "所有图片",
           useDetailsView: false,
+          statusBarColor: '#000000',
           selectCircleStrokeColor: "#000000",
         ),
       );
     } on Exception catch (e) {
-        print(e.toString());
+      print(e.toString());
     }
     if (!mounted) return;
-
+    if (resultList.length > 0) {
+      final imageData = await resultList[0].getByteData(quality: 100);
+      var buffer = imageData.buffer;
+      Uint8List imageUint8List = buffer.asUint8List(imageData.offsetInBytes,imageData.lengthInBytes);
+      final _compressImgData = await _compressImage(imageUint8List);
+      var base64Image = base64.encode(Uint8List.fromList(_compressImgData));
+      await DataBasePlayListProvider.db.updateMenuCover(menu.id, base64Image);
+      _getMusicMunu();
+    }
   }
-  _changeMenuCoverImage(){}
+    // 2. compress file and get file.
+  Future<List<int>> _compressImage(List<int> list) async {
+    var result = await FlutterImageCompress.compressWithList(
+        list,
+        quality: 5
+      );
+
+    print(result.length);
+    print(list.length);
+
+    return result;
+  }
   Future _showDeleteDialog(PlayListDBInfoMation menu) async {
     AwesomeDialog(
       context: context,

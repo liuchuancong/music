@@ -138,9 +138,13 @@ class SimpleListTile extends StatelessWidget {
     return Column(
       children: <Widget>[
         ListTile(
-          title: new Text(
-            title,
-            softWrap: false,
+          title: Container(
+            width: 50,
+            child: new Text(
+              title,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           leading: leading == null ? null : leading,
           trailing: trailing == null ? null : trailing,

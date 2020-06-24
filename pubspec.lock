@@ -181,6 +181,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.4.4"
+  flutter_image_compress:
+    dependency: "direct main"
+    description:
+      name: flutter_image_compress
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.6.8"
   flutter_inner_drawer:
     dependency: "direct main"
     description:

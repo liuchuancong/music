@@ -66,6 +66,10 @@ class DataBasePlayListProvider {
     var db = await dataBase;
     await db.rawQuery("UPDATE $table SET menu_name = '$menuName' WHERE id=$menuId");
   }
+  Future updateMenuCover(int menuId,String menuCover) async {
+    var db = await dataBase;
+    await db.rawQuery("UPDATE $table SET menu_cover = '$menuCover' WHERE id=$menuId");
+  }
   Future<PlayListDBInfoMation> getMenuWithId(int menuId) async {
     var db = await dataBase;
     var result = await db.rawQuery("SELECT * FROM $table WHERE id=$menuId");

@@ -25,12 +25,11 @@ class SongListItem extends StatelessWidget {
                   child: song.album.picUrl != null
                       ? new CachedNetworkImage(
                           imageUrl: song.album.picUrl,
-                          progressIndicatorBuilder:
-                              (context, url, downloadProgress) =>
-                                  CircularProgressIndicator(
-                                      value: downloadProgress.progress),
                           errorWidget: (context, url, error) =>
-                              Icon(Icons.error),
+                                      new Image.asset(
+                                    'assets/music2.jpg',
+                                    fit: BoxFit.cover,
+                                  ),
                         )
                       : new Image.asset('assets/music2.jpg', fit: BoxFit.cover),
                 ),
@@ -59,8 +58,8 @@ class SongListItem extends StatelessWidget {
         ),
         SizedBox(
           height: Provider.of<CurrentSong>(context)
-                      .playList[
-                          Provider.of<CurrentSong>(context).playList.length - 1]
+                      .tempPlayList[
+                          Provider.of<CurrentSong>(context).tempPlayList.length - 1]
                       .id ==
                   song.id
               ? 70
@@ -91,12 +90,11 @@ class SongListTile extends StatelessWidget {
                   child: song.album.picUrl != null
                       ? new CachedNetworkImage(
                           imageUrl: song.album.picUrl,
-                          progressIndicatorBuilder:
-                              (context, url, downloadProgress) =>
-                                  CircularProgressIndicator(
-                                      value: downloadProgress.progress),
                           errorWidget: (context, url, error) =>
-                              Icon(Icons.error),
+                                      new Image.asset(
+                                    'assets/music2.jpg',
+                                    fit: BoxFit.cover,
+                                  ),
                         )
                       : new Image.asset('assets/music1.jpeg'),
                 ),

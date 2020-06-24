@@ -79,9 +79,6 @@ class _MyPageWithAudioState extends State<MyPageWithAudio> {
           child: Provider.of<CurrentSong>(context).song.album.picUrl != null
               ? new CachedNetworkImage(
                   imageUrl: Provider.of<CurrentSong>(context).song.album.picUrl,
-                   progressIndicatorBuilder: (context, url, downloadProgress) =>
-                      CircularProgressIndicator(
-                          value: downloadProgress.progress),
                   errorWidget: (context, url, error) => new Image.asset('assets/music1.jpg', fit: BoxFit.cover),
                   fit: BoxFit.cover)
               : new Image.asset('assets/music1.jpg', fit: BoxFit.cover),

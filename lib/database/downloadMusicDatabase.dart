@@ -55,10 +55,11 @@ class DataBaseDownLoadListProvider {
   }) async {
     Database db = await dataBase;
     await db.insert(table, {
-        'song': song,
-        'song_id': songId,
-        'song_file_name': songFileName,
-        'task_id': taskId});
+      'song': song,
+      'song_id': songId,
+      'song_file_name': songFileName,
+      'task_id': taskId,
+    });
   }
 
   Future<List<DwonloadDBInfoMation>> queryAll() async {
@@ -70,7 +71,7 @@ class DataBaseDownLoadListProvider {
     return list;
   }
 
-  Future deleteMenuWithId(int songId) async {
+  Future deleteSongWithId(int songId) async {
     var db = await dataBase;
     await db.rawQuery("DELETE FROM $table WHERE id=$songId");
   }

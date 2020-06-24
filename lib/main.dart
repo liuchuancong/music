@@ -145,6 +145,22 @@ class _MyHomePageState extends State<MyHomePage> {
         scaffold: _buildBackDrop());
   }
 
+  List<Widget> _buildTempPlayList(BuildContext ctx) {
+    print(ctx
+        .watch<CurrentSong>()
+        .tempPlayList);
+    return ctx
+        .watch<CurrentSong>()
+        .tempPlayList
+        .map((song) => SongListItem(
+              song: song,
+              onPressed: () {
+                MainMethod().showBottomSheet(song: song, context: context);
+              },
+            ))
+        .toList();
+  }
+
   Widget _buildBackDrop() {
     return BackdropScaffold(
         backLayerBackgroundColor: Color(0xFF000000),
@@ -204,18 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             )
                       });
                 },
-                items: context
-                    .watch<CurrentSong>()
-                    .tempPlayList
-                    .map((song) => SongListItem(
-                          song: song,
-                          onPressed: () {
-                            MainMethod()
-                                .showBottomSheet(song: song, context: context);
-                          },
-                        ))
-                    .toList(),
-              )
+                items: _buildTempPlayList(context))
             : null,
         frontLayer: Column(
           children: <Widget>[
@@ -368,9 +373,12 @@ class _MyHomePageState extends State<MyHomePage> {
       var songs = usefulList
           .map((song) => MainListItem(
                 context: context,
-                onTap: _payMusic,
+                onTap: () {
+                  _payMusic(song);
+                },
                 song: song,
-                trailingTap: (){
+                icon: Icons.more_vert,
+                trailingTap: () {
                   MainMethod().showBottomSheet(song: song, context: context);
                 },
               ))

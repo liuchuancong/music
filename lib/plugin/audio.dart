@@ -15,7 +15,7 @@ class AudioInstance {
   // 单例公开访问点
   factory AudioInstance() => _getInstance();
   bool get isPlay => assetsAudioPlayer.isPlaying.value;
-  Playlist get playList => assetsAudioPlayer.playlist; 
+  Playlist get playList => assetsAudioPlayer.playlist;
   // 静态私有成员，没有初始化
   static AudioInstance _instance;
   static AudioInstance get instance => _getInstance();
@@ -61,7 +61,8 @@ class AudioInstance {
     List<MusicDBInfoMation> list =
         await DataBaseMusicProvider.db.queryMusic(song.taskId);
     String misicId = list[0].musicId;
-    Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/song",
+    Response response = await Dio(dioOptions).get(
+        "http://api.migu.jsososo.com/song",
         queryParameters: {'id': misicId});
     Map songsMap = json.decode(response.toString());
     DownLoadFileInfo songInfo = new DownLoadFileInfo.fromJson(songsMap);
@@ -104,6 +105,17 @@ class AudioInstance {
       );
       await assetsAudioPlayer.open(_audio, showNotification: true);
       updateMetas(song);
+    } catch (t) {
+      //mp3 unreachable
+    }
+  }
+
+  Future<void> initPlaylist(Playlist playlist) async {
+    if (isPlay) {
+      stop();
+    }
+    try {
+      await assetsAudioPlayer.open(playlist, showNotification: true);
     } catch (t) {
       //mp3 unreachable
     }
@@ -267,6 +279,7 @@ class AudioInstance {
   Future<void> prev() async {
     await assetsAudioPlayer.previous();
   }
+
   Future<void> dispose() async {
     await assetsAudioPlayer.dispose();
   }

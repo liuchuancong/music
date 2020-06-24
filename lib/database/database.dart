@@ -58,7 +58,10 @@ class DataBaseMusicProvider {
         : [];
     return list;
   }
-
+   Future deleteMusicWithId(String musicId) async {
+    var db = await dataBase;
+    await db.rawQuery("DELETE FROM $table WHERE music_id='${musicId.toString()}'");
+  }
     Future queryMusicWithMusicId(String musicId) async {
     var db = await dataBase;
     var result =

@@ -18,6 +18,7 @@ class CurrentSong with ChangeNotifier {
     notifyListeners();
   }
    void settempPlayList(List<SongList> playList) {
+     print(playList.length);
     this._tempPlayList = playList;
     notifyListeners();
   }

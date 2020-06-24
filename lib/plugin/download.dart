@@ -35,17 +35,16 @@ class DownLoadInstance {
       url: url,
       fileName: song.name + '.' + fileName,
       savedDir: _localPath,
-      showNotification:
-          false, // show download progress in status bar (for Android)
-      openFileFromNotification:
-          false, // click on notification to open downloaded file (for Android)
+      showNotification: false,
+      openFileFromNotification: false,
     );
     final tempSong = jsonEncode(song);
     await DataBaseDownLoadListProvider.db.insetDB(
-        taskId: taskId,
-        song: tempSong.toString(),
-        songId: song.id,
-        songFileName: fileName);
+      taskId: taskId,
+      song: tempSong.toString(),
+      songId: song.id,
+      songFileName: song.name + '.' + fileName,
+    );
     await DataBaseMusicProvider.db.insetDB(taskId: taskId, musicId: song.id);
   }
 

@@ -102,47 +102,71 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  Widget build(BuildContext context) {
-    return InnerDrawer(
-        key: _innerDrawerKey,
-        leftChild: Scaffold(
-          body: Container(
-            decoration: BoxDecoration(color: Color(0xFFDDE6E8)),
-            child: ListView(
-              children: <Widget>[
-                SizedBox(height: MediaQuery.of(context).size.height * 0.1),
-                NiceButtonGroup(
-                  onTap: () {
-                    _openRoute(page: DownLoadPage());
-                  },
-                  icon: Icons.file_download,
-                  title: '下载管理',
+  Future<bool> _onBackPressed() {
+    return showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10.0))),
+              contentPadding: EdgeInsets.only(top: 10.0),
+              title: Text('确定退出程序吗?'),
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('暂不'),
+                  onPressed: () => Navigator.pop(context, false),
                 ),
-                NiceButtonGroup(
-                  onTap: () {
-                    _openRoute(page: PlayMusicListPage());
-                  },
-                  icon: Icons.library_music,
-                  title: '我的歌单',
-                ),
-                NiceButtonGroup(
-                  onTap: () {
-                    _openRoute(page: LocalMusicPage());
-                  },
-                  icon: Icons.music_note,
-                  title: '本地音乐',
+                FlatButton(
+                  child: Text('确定'),
+                  onPressed: () => Navigator.pop(context, true),
                 ),
               ],
+            ));
+  }
+
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: _onBackPressed,
+      child: InnerDrawer(
+          key: _innerDrawerKey,
+          leftChild: Scaffold(
+            body: Container(
+              decoration: BoxDecoration(color: Color(0xFFDDE6E8)),
+              child: ListView(
+                children: <Widget>[
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+                  NiceButtonGroup(
+                    onTap: () {
+                      _openRoute(page: PlayMusicListPage());
+                    },
+                    icon: Icons.library_music,
+                    title: '我的歌单',
+                  ),
+                  NiceButtonGroup(
+                    onTap: () {
+                      _openRoute(page: LocalMusicPage());
+                    },
+                    icon: Icons.music_note,
+                    title: '本地音乐',
+                  ),
+                  NiceButtonGroup(
+                    onTap: () {
+                      _openRoute(page: DownLoadPage());
+                    },
+                    icon: Icons.file_download,
+                    title: '下载管理',
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        scale: IDOffset.horizontal(0.8),
-        proportionalChildArea: true,
-        backgroundDecoration: BoxDecoration(color: Color(0xFFDDE6E8)),
-        onTapClose: true,
-        borderRadius: 50,
-        leftAnimationType: InnerDrawerAnimation.quadratic, // default static
-        scaffold: _buildBackDrop());
+          scale: IDOffset.horizontal(0.8),
+          proportionalChildArea: true,
+          backgroundDecoration: BoxDecoration(color: Color(0xFFDDE6E8)),
+          onTapClose: true,
+          borderRadius: 50,
+          leftAnimationType: InnerDrawerAnimation.quadratic, // default static
+          scaffold: _buildBackDrop()),
+    );
   }
 
   List<Widget> _buildTempPlayList(BuildContext ctx) {

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:marquee/marquee.dart';
 import 'package:music/components/blurBackground.dart';
+import 'package:music/database/lyricDataBase.dart';
 import 'package:music/lyric/lyric.dart';
 import 'package:music/model/currentSong.dart';
 import 'package:music/page/painter.dart';
@@ -118,18 +119,29 @@ class __PageState extends State<_Page> with TickerProviderStateMixin {
 
   void _getSonglyric() async {
     lyricContent = null;
-    try {
-      Response response = await Dio(dioOptions).get("http://api.migu.jsososo.com/lyric",
-          queryParameters: {'cid': context.read<CurrentSong>().song.cid});
-      Map songsMap = json.decode(response.toString());
-      if (songsMap['result'] == 100) {
-        lyricContent = LyricContent.from(songsMap['data']);
-        setState(() {});
-      } else {
+    final cid = context.read<CurrentSong>().song.cid;
+    List<LyricDBInfoMation> lyricList =
+        await LyricDataBaseProvider.db.queryLyricWithcId(cid);
+    if (lyricList.length > 0) {
+      lyricContent = LyricContent.from(lyricList[0].lyric);
+       setState(() {});
+    } else {
+      try {
+        Response response = await Dio(dioOptions).get(
+            "http://api.migu.jsososo.com/lyric",
+            queryParameters: {'cid': cid});
+        Map songsMap = json.decode(response.toString());
+        if (songsMap['result'] == 100) {
+          lyricContent = LyricContent.from(songsMap['data']);
+          await LyricDataBaseProvider.db
+              .insetDB(cId: cid, lyric: songsMap['data']);
+          setState(() {});
+        } else {
+          print('error');
+        }
+      } catch (e) {
         print('error');
       }
-    } catch (e) {
-      print('error');
     }
   }
 

@@ -112,7 +112,7 @@ class MainMethod {
                 leading: Container(
                     width: 60,
                     height: 60,
-                    child: new Image.memory(base64Decode(menu.menuCover))),
+                    child: new Image.memory(base64Decode(menu.menuCover),fit: BoxFit.cover,)),
                 trailing: null,
                 onTap: () {
                   Navigator.of(context).pop();
